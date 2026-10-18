@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.4
+
+- Added the project logo: shown as the extension icon in the Extensions view
+  and marketplace page (`images/icon.png`, 256x256), in the README header,
+  and as the GitHub repository social preview (`images/logo.png`, full
+  resolution).
+
 ## 1.1.3
 
 - Added author metadata: **Smit P. Bhatt** (package manifest, LICENSE

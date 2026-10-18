@@ -1,5 +1,7 @@
 # SPFx Quick View Validator
 
+<img src="images/icon.png" alt="SPFx Quick View Validator logo" width="128" height="128" />
+
 A VS Code extension that validates **SharePoint Framework (SPFx) Adaptive Card
 Extension Quick View** files in real time — before SharePoint fails to render
 them.

@@ -8,3 +8,4 @@ out/test/**
 tsconfig.json
 .mocharc.json
 **/*.map
+images/logo.png
