@@ -1,0 +1,26 @@
+{
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "id": "employeeName",
+      "text": "${employeeName}",
+      "ariaLabel": "${employeeName} - ${employeeEmail}"
+    },
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "id": "employeeEmail",
+          "text": "${employee.email}"
+        },
+        {
+          "type": "TextBlock",
+          "id": "employee",
+          "text": "${employee.address.city} ${employee.address.zip}"
+        }
+      ]
+    }
+  ]
+}

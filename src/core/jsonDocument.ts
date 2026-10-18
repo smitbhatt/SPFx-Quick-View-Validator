@@ -1,0 +1,132 @@
+import { Node, ParseError, parseTree, printParseErrorCode } from 'jsonc-parser';
+import { extractBindingExpressions } from './bindings';
+
+export interface JsonSyntaxError {
+  message: string;
+  offset: number;
+  length: number;
+}
+
+/** An `id` property found anywhere in the JSON document. */
+export interface IdReference {
+  /** The unescaped ID value (guaranteed non-empty). */
+  value: string;
+  /** JSON path such as `$.items[1].id`. */
+  path: string;
+  /** Offsets of the value *without* the surrounding quotes. */
+  offset: number;
+  length: number;
+  node: Node;
+}
+
+/** An Adaptive Card templating expression such as `${employee.name}` found in a string value. */
+export interface BindingReference {
+  /** The raw expression text between `${` and `}`. */
+  expression: string;
+  /** JSON path of the string value containing the expression. */
+  path: string;
+  /** Offsets of the full `${...}` span inside the document. */
+  offset: number;
+  length: number;
+}
+
+export interface ParsedQuickViewJson {
+  root: Node | undefined;
+  syntaxErrors: JsonSyntaxError[];
+  ids: IdReference[];
+  bindings: BindingReference[];
+}
+
+export interface JsonParseOptions {
+  allowComments: boolean;
+  allowTrailingCommas: boolean;
+}
+
+/**
+ * Parses `quickview.json` with `jsonc-parser`, preserving source offsets.
+ * Collects every `id` property (non-empty string values) and every `${...}`
+ * templating expression found in any string value.
+ */
+export function parseQuickViewJson(text: string, options: JsonParseOptions): ParsedQuickViewJson {
+  const errors: ParseError[] = [];
+  const root = parseTree(text, errors, {
+    allowTrailingComma: options.allowTrailingCommas,
+    disallowComments: !options.allowComments
+  });
+
+  const syntaxErrors: JsonSyntaxError[] = errors.map((e) => ({
+    message: printParseErrorCode(e.error),
+    offset: e.offset,
+    length: Math.max(e.length, 1)
+  }));
+
+  const ids: IdReference[] = [];
+  const bindings: BindingReference[] = [];
+  if (root) {
+    walk(root, '$', text, ids, bindings);
+  }
+
+  return { root, syntaxErrors, ids, bindings };
+}
+
+function childPath(parent: string, key: string): string {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? `${parent}.${key}` : `${parent}['${key}']`;
+}
+
+function walk(node: Node, path: string, text: string, ids: IdReference[], bindings: BindingReference[]): void {
+  switch (node.type) {
+    case 'object': {
+      // jsonc-parser represents object entries as `property` nodes whose
+      // children are [keyNode, valueNode].
+      for (const propertyNode of node.children ?? []) {
+        if (propertyNode.type !== 'property') {
+          continue;
+        }
+        const pair = propertyNode.children ?? [];
+        const keyNode = pair[0];
+        const valueNode = pair[1];
+        if (!keyNode || !valueNode) {
+          continue;
+        }
+        const key = typeof keyNode.value === 'string' ? keyNode.value : String(keyNode.value);
+        const valuePath = childPath(path, key);
+
+        if (key === 'id' && valueNode.type === 'string' && typeof valueNode.value === 'string' && valueNode.value.length > 0) {
+          // Skip the surrounding quotes when reporting the range.
+          const quotedLength = Math.max(valueNode.length - 2, 0);
+          ids.push({
+            value: valueNode.value,
+            path: `${valuePath}`,
+            offset: valueNode.offset + 1,
+            length: quotedLength,
+            node: valueNode
+          });
+        }
+
+        walk(valueNode, valuePath, text, ids, bindings);
+      }
+      break;
+    }
+    case 'array': {
+      const children = node.children ?? [];
+      children.forEach((child, index) => walk(child, `${path}[${index}]`, text, ids, bindings));
+      break;
+    }
+    case 'string': {
+      // Bindings may appear in *any* string value, not only TextBlock.text.
+      // Note: offsets assume the raw text matches the parsed value (no escapes);
+      // escaped content inside a binding is an accepted, documented limitation.
+      for (const match of extractBindingExpressions(String(node.value))) {
+        bindings.push({
+          expression: match.expression,
+          path,
+          offset: node.offset + 1 + match.start,
+          length: match.length
+        });
+      }
+      break;
+    }
+    default:
+      break;
+  }
+}
