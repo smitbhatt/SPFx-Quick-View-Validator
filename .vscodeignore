@@ -9,3 +9,4 @@ tsconfig.json
 .mocharc.json
 **/*.map
 images/logo.png
+CONTRIBUTING.md

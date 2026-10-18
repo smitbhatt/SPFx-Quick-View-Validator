@@ -149,29 +149,15 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-### From the `.vsix` (end users)
+Download `spfx-quick-view-validator-1.1.5.vsix` from the
+[latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
+then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.0.0.vsix
+code --install-extension spfx-quick-view-validator-1.1.5.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
-
-### Development setup
-
-```bash
-npm install
-npm run build     # compile TypeScript to out/
-npm test          # build + run the full mocha test suite
-npm run check     # type check only
-npm run package   # produce the .vsix (uses @vscode/vsce)
-```
-
-### Run in an Extension Development Host
-
-1. Open this folder in VS Code.
-2. Press **F5** (launch configuration *Run Extension*).
-3. In the new window, open an SPFx project and a `quickview.json`.
 
 ---
 
@@ -283,7 +269,7 @@ Result:
   IDs to exist in TypeScript. Keep the rule at warning severity or disable it
   for projects that do not follow the convention.
 
-## Debugging "why am I getting no diagnostics?"
+## Why am I getting no diagnostics?
 
 1. **Check the file name.** Only files matching `spfxQuickViewValidator.jsonFilePatterns`
    (default `quickview*.json`) are validated. If your template is named
@@ -300,33 +286,6 @@ Result:
 5. If bindings are not checked at all, look for the `noDataGetter` or
    `unresolvedDataShape` warnings at the top of the JSON file — they mean the
    `data` getter or its return type could not be analyzed.
-
-## Architecture
-
-```
-src/
-  extension.ts                 activation, commands, events, caching, debounce
-  config.ts                    VS Code settings → typed configuration
-  analyzer/analyzer.ts         TypeScript compiler API analysis (data getter,
-                               declared properties, nested type resolution)
-  core/
-    types.ts                   VS Code-independent models
-    positions.ts               offset ↔ line/column helpers
-    jsonDocument.ts            jsonc-parser walk: IDs + ${...} extraction
-    bindings.ts                expression extraction and parsing
-    duplicateIds.ts            duplicate grouping
-    association.ts             quickview.json → quickView.ts resolution
-    validate.ts                the pure validation pipeline
-  vscodeFeatures/
-    diagnostics.ts             core diagnostics → vscode.Diagnostic
-    codeActions.ts             quick fixes (navigation only, never mutations)
-    commandIds.ts              command identifiers
-test/                          mocha unit/integration tests + SPFx fixtures
-```
-
-The `core/` and `analyzer/` modules never import `vscode`, which is why the
-whole pipeline — including unsaved-content handling — is covered by plain
-mocha tests running in Node.
 
 ## Author
 

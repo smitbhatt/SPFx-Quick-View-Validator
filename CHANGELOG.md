@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.5
+
+- Streamlined the extension detail page: development setup, Extension
+  Development Host instructions and the code architecture section moved out
+  of the README into `CONTRIBUTING.md` (repo only), so the detail page shows
+  user-facing documentation exclusively.
+- Fixed the stale `.vsix` file name in the installation instructions and
+  linked them to the GitHub releases page.
+
 ## 1.1.4
 
 - Added the project logo: shown as the extension icon in the Extensions view
