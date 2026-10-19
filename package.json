@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",

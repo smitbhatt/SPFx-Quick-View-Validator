@@ -150,12 +150,12 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.1.5.vsix` from the
+Download `spfx-quick-view-validator-1.1.6.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.1.5.vsix
+code --install-extension spfx-quick-view-validator-1.1.6.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.

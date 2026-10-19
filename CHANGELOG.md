@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.6
+
+- **Changed defaults:** `enableDataBindingCheck` and `enableIdPropertyCheck`
+  now default to `false` — both checks are opt-in via settings. Duplicate-ID
+  detection and JSON syntax validation stay enabled by default. The README
+  settings table, element-ID rule section and troubleshooting list are
+  synced with the new defaults.
+
 ## 1.1.5
 
 - Streamlined the extension detail page: development setup, Extension
