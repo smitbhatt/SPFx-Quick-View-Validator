@@ -114,9 +114,10 @@ Some teams declare one property per element ID so IDs stay in sync with the
 view model. This rule checks every JSON `id` against properties declared in
 top-level **interfaces, type aliases and classes** (including resolvable
 imported and inherited ones) of the associated TypeScript file. Function
-parameters and local variables are never counted. The rule is a *warning* by
-default and can be disabled — it is a convention, not an Adaptive Card
-requirement.
+parameters and local variables are never counted. The rule is **disabled by
+default** (`spfxQuickViewValidator.enableIdPropertyCheck`); when enabled it
+reports *warnings* and can be turned off per project — it is a convention,
+not an Adaptive Card requirement.
 
 ### 6. File association
 
@@ -203,8 +204,8 @@ Quick fixes (light bulb) on diagnostics:
 | Setting | Default | Description |
 | --- | --- | --- |
 | `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. |
-| `spfxQuickViewValidator.enableDataBindingCheck` | `true` | Validate `${...}` bindings against the data getter. |
-| `spfxQuickViewValidator.enableIdPropertyCheck` | `true` | Check element IDs against TypeScript property declarations. |
+| `spfxQuickViewValidator.enableDataBindingCheck` | `false` | Validate `${...}` bindings against the data getter. |
+| `spfxQuickViewValidator.enableIdPropertyCheck` | `false` | Check element IDs against TypeScript property declarations. |
 | `spfxQuickViewValidator.idPropertySeverity` | `warning` | `error`, `warning` or `information`. |
 | `spfxQuickViewValidator.validationDebounceMs` | `250` | Debounce while typing (0–5000 ms). |
 | `spfxQuickViewValidator.allowJsonComments` | `false` | Permit `//` and `/* */` in `quickview.json`. |
@@ -275,15 +276,18 @@ Result:
    (default `quickview*.json`) are validated. If your template is named
    differently, add its name to the setting — that is the most common reason
    a file produces no diagnostics at all.
-2. Run **Show Validation Summary** — it prints the association status
+2. **Check the feature settings.** `spfxQuickViewValidator.enableDataBindingCheck`
+   and `spfxQuickViewValidator.enableIdPropertyCheck` are **off by default** —
+   turn them on if you expect binding or ID/property diagnostics.
+3. Run **Show Validation Summary** — it prints the association status
    (`resolved` / `ambiguous` / `not found`), the candidates found, the Quick
    View class, and the resolved data properties.
-3. If the association is **ambiguous**, run **Select Associated TypeScript
+4. If the association is **ambiguous**, run **Select Associated TypeScript
    File** and pick the correct file; the choice is remembered per workspace.
-4. If the file is **not found**, check the naming convention: the extension
+5. If the file is **not found**, check the naming convention: the extension
    looks for `*quickview.ts` next to the JSON, in a sibling `quickView/`
    folder, or in the parent folder.
-5. If bindings are not checked at all, look for the `noDataGetter` or
+6. If bindings are not checked at all, look for the `noDataGetter` or
    `unresolvedDataShape` warnings at the top of the JSON file — they mean the
    `data` getter or its return type could not be analyzed.
 

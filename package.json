@@ -86,12 +86,12 @@
         },
         "spfxQuickViewValidator.enableDataBindingCheck": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Validate Adaptive Card templating expressions such as ${employeeName} against the data getter of the associated Quick View TypeScript file."
         },
         "spfxQuickViewValidator.enableIdPropertyCheck": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Check whether every element ID in quickview.json has a matching property declaration in the associated TypeScript file. This is a project-specific convention, not a universal Adaptive Card requirement."
         },
         "spfxQuickViewValidator.idPropertySeverity": {
