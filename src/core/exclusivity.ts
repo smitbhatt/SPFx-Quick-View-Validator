@@ -1,4 +1,5 @@
 import { CompareOperator, ConditionConstant, OccurrenceVisibility, VisibilityCondition } from './conditions';
+import { NumericDomain } from './types';
 
 /**
  * Pairwise static analysis of two sibling elements' visibility conditions.
@@ -28,7 +29,11 @@ function isAlways(condition: VisibilityCondition): boolean {
 }
 
 /** True when two visibility conditions can hold at the same time. */
-export function compareVisibility(a: OccurrenceVisibility, b: OccurrenceVisibility): ExclusivityVerdict {
+export function compareVisibility(
+  a: OccurrenceVisibility,
+  b: OccurrenceVisibility,
+  domain: NumericDomain = 'integer'
+): ExclusivityVerdict {
   const ac = a.condition;
   const bc = b.condition;
   if (ac.kind === 'unknown' || bc.kind === 'unknown') {
@@ -64,7 +69,7 @@ export function compareVisibility(a: OccurrenceVisibility, b: OccurrenceVisibili
     if (ac.path !== bc.path) {
       return 'overlap'; // independent properties
     }
-    return compareConstants(ac.operator, ac.constant, bc.operator, bc.constant);
+    return compareConstants(ac.operator, ac.constant, bc.operator, bc.constant, domain);
   }
   // truthy vs compare
   const truthyPath = ac.kind === 'truthy' ? ac.path : (bc as { path: string }).path;
@@ -74,13 +79,17 @@ export function compareVisibility(a: OccurrenceVisibility, b: OccurrenceVisibili
 
 /**
  * Decides whether two comparisons over the *same* property can hold at once,
- * using interval arithmetic on the compared constants.
+ * using interval arithmetic on the compared constants. For the `integer`
+ * domain the intersected range is additionally checked for containing at
+ * least one integer, so `${x > 1}` vs `${x < 2}` (empty over integers,
+ * (1, 2) over reals) is proven exclusive.
  */
 function compareConstants(
   opA: CompareOperator,
   a: ConditionConstant,
   opB: CompareOperator,
-  b: ConditionConstant
+  b: ConditionConstant,
+  domain: NumericDomain
 ): ExclusivityVerdict {
   if (typeof a.value !== typeof b.value) {
     // e.g. `x > 5` vs `x == "five"` — domains cannot be reconciled safely.
@@ -89,9 +98,14 @@ function compareConstants(
   const setA = toSet(opA, a.value);
   const setB = toSet(opB, b.value);
   const lt = (x: string | number | boolean, y: string | number | boolean): boolean => x < y;
+  const integerLattice = domain === 'integer' && typeof a.value === 'number';
   for (const intervalA of setA) {
     for (const intervalB of setB) {
-      if (intervalsIntersect(intervalA, intervalB, lt)) {
+      const intersection = intersectBounds(intervalA, intervalB, lt);
+      if (intersection === undefined) {
+        continue; // empty intersection
+      }
+      if (!integerLattice || boundsContainInteger(intersection)) {
         return 'overlap';
       }
     }
@@ -129,11 +143,12 @@ function toSet(operator: CompareOperator, value: string | number | boolean): Int
   }
 }
 
-function intervalsIntersect(
+/** Intersects two intervals; `undefined` means the intersection is empty. */
+function intersectBounds(
   x: Interval,
   y: Interval,
   lt: (a: string | number | boolean, b: string | number | boolean) => boolean
-): boolean {
+): Interval | undefined {
   // Tighter lower bound = larger value.
   let lo: string | number | boolean | undefined;
   let loInc: boolean;
@@ -175,15 +190,27 @@ function intervalsIntersect(
   }
 
   if (lo === undefined || hi === undefined) {
-    return true; // at least one unbounded side
+    return { lo, loInc, hi, hiInc }; // at least one unbounded side — non-empty
   }
   if (lt(lo, hi)) {
-    return true;
+    return { lo, loInc, hi, hiInc };
   }
   if (lt(hi, lo)) {
-    return false;
+    return undefined;
   }
-  return loInc && hiInc; // single point — only if both sides include it
+  // A single point — only when both sides include it.
+  return loInc && hiInc ? { lo, loInc, hi, hiInc } : undefined;
+}
+
+/** True when the (numeric, possibly fractional) bounds admit at least one integer. */
+function boundsContainInteger(bounds: Interval): boolean {
+  if (bounds.lo === undefined || bounds.hi === undefined) {
+    return true; // integers are unbounded in either direction
+  }
+  const lo = bounds.lo as number;
+  const hi = bounds.hi as number;
+  const first = bounds.loInc ? Math.ceil(lo) : Math.floor(lo) + 1;
+  return bounds.hiInc ? first <= hi : first < hi;
 }
 
 /**
@@ -191,11 +218,14 @@ function intervalsIntersect(
  * otherwise any unprovable pair downgrades to `unproven`, otherwise the
  * whole group is proven exclusive.
  */
-export function classifyDuplicateGroup(occurrences: OccurrenceVisibility[]): GroupClassification {
+export function classifyDuplicateGroup(
+  occurrences: OccurrenceVisibility[],
+  domain: NumericDomain = 'integer'
+): GroupClassification {
   let undetermined = false;
   for (let i = 0; i < occurrences.length; i++) {
     for (let j = i + 1; j < occurrences.length; j++) {
-      const verdict = compareVisibility(occurrences[i], occurrences[j]);
+      const verdict = compareVisibility(occurrences[i], occurrences[j], domain);
       if (verdict === 'overlap') {
         return 'coexist';
       }

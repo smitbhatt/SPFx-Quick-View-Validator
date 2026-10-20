@@ -8,6 +8,13 @@ export type Severity = 'error' | 'warning' | 'information';
 /** A severity that may also suppress a diagnostic entirely. */
 export type ConfiguredSeverity = Severity | 'off';
 
+/**
+ * Domain over which numeric visibility-condition comparisons are solved.
+ * `integer` matches typical counters (days, items); `continuous` is the
+ * never-silence-a-possible-conflict choice for fractional data.
+ */
+export type NumericDomain = 'integer' | 'continuous';
+
 /** A range expressed as character offsets into a document. */
 export interface SourceRange {
   offset: number;
@@ -72,6 +79,12 @@ export interface ValidatorConfig {
   enableVisibilityConditionAnalysis: boolean;
   /** Severity for duplicates proven mutually exclusive (`off` = silent). */
   conditionalDuplicateSeverity: ConfiguredSeverity;
+  /**
+   * Domain for numeric condition comparisons: `integer` proves
+   * `${x > 1}` vs `${x < 2}` exclusive (adjacent integer bounds),
+   * `continuous` treats the real interval (1, 2) as an overlap.
+   */
+  numericConditionDomain: NumericDomain;
   idPropertySeverity: Severity;
   validationDebounceMs: number;
   allowJsonComments: boolean;
@@ -88,6 +101,7 @@ export const DEFAULT_CONFIG: ValidatorConfig = {
   enableIdPropertyCheck: true,
   enableVisibilityConditionAnalysis: true,
   conditionalDuplicateSeverity: 'off',
+  numericConditionDomain: 'integer',
   idPropertySeverity: 'warning',
   validationDebounceMs: 250,
   allowJsonComments: false,

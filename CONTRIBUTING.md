@@ -28,7 +28,7 @@ both pass before committing.
 
 ## Tests
 
-- Plain **mocha** tests in `test/` (TDD UI, 97 scenarios) run in Node —
+- Plain **mocha** tests in `test/` (TDD UI, 106 scenarios) run in Node —
   no `@vscode/test-electron` needed, because `src/core/` and `src/analyzer/`
   never import `vscode`. The whole pipeline, including unsaved-content
   handling, is covered by these tests.

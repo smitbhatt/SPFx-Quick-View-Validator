@@ -72,7 +72,7 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
     for (const group of findDuplicateIds(parsed.ids)) {
       const visibilities = group.occurrences.map(readOccurrenceVisibility);
       const classification: GroupClassification = config.enableVisibilityConditionAnalysis
-        ? classifyDuplicateGroup(visibilities)
+        ? classifyDuplicateGroup(visibilities, config.numericConditionDomain)
         : 'coexist';
 
       let severity: Severity;

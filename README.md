@@ -67,9 +67,14 @@ The severity model for duplicates:
 Analyzed condition shapes: boolean `true`/`false`, truthiness (`${flag}`,
 `${!flag}`) and single comparisons of a property against a constant
 (`>`, `>=`, `<`, `<=`, `==`, `!=`, including flipped forms like `${1 < dayRemaining}`
-and quoted string or boolean constants). `$when` and `isVisible` are analyzed
-together, and `$when`-guarded elements are compared with `isVisible`-guarded
-ones. Anything beyond that is never guessed at — it degrades to a warning.
+and quoted string or boolean constants). Numeric comparisons are solved over
+**integers** by default — `${count > 1}` vs `${count < 2}` is proven
+exclusive because no integer lies strictly between 1 and 2, which matches
+typical day/item counters (see
+`spfxQuickViewValidator.numericConditionDomain` for fractional data).
+`$when` and `isVisible` are analyzed together, and `$when`-guarded elements
+are compared with `isVisible`-guarded ones. Anything beyond that is never
+guessed at — it degrades to a warning.
 
 ### 2. JSON syntax validation
 
@@ -178,12 +183,12 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.1.7.vsix` from the
+Download `spfx-quick-view-validator-1.1.8.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.1.7.vsix
+code --install-extension spfx-quick-view-validator-1.1.8.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -234,6 +239,7 @@ Quick fixes (light bulb) on diagnostics:
 | `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. |
 | `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
 | `spfxQuickViewValidator.conditionalDuplicateSeverity` | `off` | Severity for duplicates proven mutually exclusive by their visibility conditions: `off` (not reported), `warning` or `information`. |
+| `spfxQuickViewValidator.numericConditionDomain` | `integer` | Domain for numeric condition comparisons. `integer` proves `${x > 1}` vs `${x < 2}` exclusive (adjacent integer bounds); set `continuous` when a numeric property can be fractional. |
 | `spfxQuickViewValidator.enableDataBindingCheck` | `false` | Validate `${...}` bindings against the data getter. |
 | `spfxQuickViewValidator.enableIdPropertyCheck` | `false` | Check element IDs against TypeScript property declarations. |
 | `spfxQuickViewValidator.idPropertySeverity` | `warning` | `error`, `warning` or `information`. |
@@ -292,8 +298,11 @@ Result:
   (`&&`, `||`), arithmetic and function calls cannot be proven exclusive, so
   duplicate IDs guarded by them are reported as warnings. Conditions on a
   *parent* container are not considered, and duplicates in different
-  containers are never claimed exclusive. Continuous (non-integer) ranges are
-  assumed, which can only over-report — never silence a real conflict.
+  containers are never claimed exclusive. Numeric comparisons default to the
+  **integer** domain: `${x > 1}` vs `${x < 2}` is proven exclusive and not
+  reported. If a numeric property can genuinely be fractional, set
+  `spfxQuickViewValidator.numericConditionDomain` to `continuous` so such
+  pairs are reported as overlapping errors again.
 - **Escaped strings.** Binding offsets assume the raw text matches the parsed
   string value; escape sequences inside a binding expression shift positions
   slightly (the diagnostic is still reported on the correct string value).

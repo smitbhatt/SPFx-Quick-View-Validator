@@ -269,6 +269,69 @@ suite('Duplicate IDs with visibility conditions ($when / isVisible)', () => {
   });
 });
 
+suite('Numeric condition domain (integer vs continuous)', () => {
+  const adjacentBounds = card(
+    { type: 'TextBlock', id: 'daysRemaining', $when: '${dayRemaining > 1}', text: 'a' },
+    { type: 'TextBlock', id: 'daysRemaining', $when: '${dayRemaining < 2}', text: 'b' }
+  );
+
+  test('adjacent integer bounds are exclusive by default (real-world days-remaining pattern)', () => {
+    assert.strictEqual(duplicates(adjacentBounds).length, 0);
+  });
+
+  test('the same pair overlaps in continuous mode', () => {
+    const found = duplicates(adjacentBounds, { numericConditionDomain: 'continuous' });
+    assert.strictEqual(found.length, 2);
+    assert.ok(found.every((d) => d.severity === 'error'));
+  });
+
+  test('>= c vs < c and > c vs <= c are exclusive in both domains', () => {
+    const pairs = [
+      card(
+        { type: 'TextBlock', id: 'x', $when: '${n >= 2}', text: 'a' },
+        { type: 'TextBlock', id: 'x', $when: '${n < 2}', text: 'b' }
+      ),
+      card(
+        { type: 'TextBlock', id: 'x', $when: '${n > 2}', text: 'a' },
+        { type: 'TextBlock', id: 'x', $when: '${n <= 2}', text: 'b' }
+      )
+    ];
+    for (const json of pairs) {
+      assert.strictEqual(duplicates(json).length, 0, 'integer-lattice exclusive');
+      assert.strictEqual(duplicates(json, { numericConditionDomain: 'continuous' }).length, 0, 'reals exclusive too');
+    }
+  });
+
+  test('fractional gap bounds are exclusive only on the integer lattice', () => {
+    const fractional = card(
+      { type: 'TextBlock', id: 'x', $when: '${n > 1}', text: 'a' },
+      { type: 'TextBlock', id: 'x', $when: '${n < 1.5}', text: 'b' }
+    );
+    assert.strictEqual(duplicates(fractional).length, 0, 'no integer in (1, 1.5)');
+    assert.strictEqual(duplicates(fractional, { numericConditionDomain: 'continuous' }).length, 2);
+  });
+
+  test('spec example (>0 vs <10) still overlaps under the integer domain', () => {
+    const json = card(
+      { type: 'TextBlock', id: 'n', $when: '${n > 0}', text: 'a' },
+      { type: 'TextBlock', id: 'n', $when: '${n < 10}', text: 'b' }
+    );
+    const found = duplicates(json);
+    assert.strictEqual(found.length, 2);
+    assert.ok(found.every((d) => d.severity === 'error'), 'integers 1..9 satisfy both');
+  });
+
+  test('the setting only affects numeric domains — string comparisons are unchanged', () => {
+    const json = card(
+      { type: 'TextBlock', id: 's', $when: '${status == "active"}', text: 'a' },
+      { type: 'TextBlock', id: 's', $when: '${status != "active"}', text: 'b' }
+    );
+    for (const domain of ['integer', 'continuous'] as const) {
+      assert.strictEqual(duplicates(json, { numericConditionDomain: domain }).length, 0);
+    }
+  });
+});
+
 suite('Visibility condition parsing (unit)', () => {
   test('parses comparisons, truthiness, flips and literals', () => {
     assert.deepStrictEqual(parseVisibilityExpression('${dayRemaining > 1}'), {

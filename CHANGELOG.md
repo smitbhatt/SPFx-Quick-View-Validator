@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.8
+
+- **Numeric condition comparisons are solved over integers by default:**
+  sibling elements guarded by `${dayRemaining > 1}` and `${dayRemaining < 2}`
+  (adjacent integer bounds — the classic days-remaining pattern) are now
+  proven mutually exclusive and not reported, since no integer lies strictly
+  between 1 and 2. Previously the real-number model found the overlap
+  (1, 2) and reported an error.
+- New setting `spfxQuickViewValidator.numericConditionDomain`
+  (`integer` | `continuous`, default `integer`): set `continuous` when a
+  numeric property can be fractional — adjacent-bound pairs then overlap on
+  the real interval again and are reported as errors.
+
 ## 1.1.7
 
 - **Condition-aware duplicate-ID detection:** duplicates are now analyzed

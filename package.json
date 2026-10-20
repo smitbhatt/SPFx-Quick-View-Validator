@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -103,6 +103,19 @@
           ],
           "default": "off",
           "description": "Severity used for duplicate element IDs inside sibling conditions ($when / isVisible) that have been proven mutually exclusive, so only one element can render at runtime."
+        },
+        "spfxQuickViewValidator.numericConditionDomain": {
+          "type": "string",
+          "enum": [
+            "integer",
+            "continuous"
+          ],
+          "enumDescriptions": [
+            "Solve numeric condition comparisons over integers (default): ${x > 1} vs ${x < 2} is proven exclusive because no integer lies strictly between 1 and 2. Recommended for day/item counters.",
+            "Solve numeric condition comparisons over real numbers: ${x > 1} vs ${x < 2} overlaps on (1, 2) and is reported as an error. Use when a numeric property can be fractional."
+          ],
+          "default": "integer",
+          "description": "Domain used when comparing numeric visibility conditions ($when / isVisible) of duplicate elements."
         },
         "spfxQuickViewValidator.enableDataBindingCheck": {
           "type": "boolean",
