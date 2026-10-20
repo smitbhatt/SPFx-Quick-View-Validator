@@ -28,7 +28,7 @@ both pass before committing.
 
 ## Tests
 
-- Plain **mocha** tests in `test/` (TDD UI, 75 scenarios) run in Node —
+- Plain **mocha** tests in `test/` (TDD UI, 97 scenarios) run in Node —
   no `@vscode/test-electron` needed, because `src/core/` and `src/analyzer/`
   never import `vscode`. The whole pipeline, including unsaved-content
   handling, is covered by these tests.
@@ -53,8 +53,11 @@ src/
   core/
     types.ts                   VS Code-independent models
     positions.ts               offset ↔ line/column helpers
-    jsonDocument.ts            jsonc-parser walk: IDs + ${...} extraction
+    jsonDocument.ts            jsonc-parser walk: IDs, containers, $when /
+                               isVisible, ${...} extraction
     bindings.ts                expression extraction and parsing
+    conditions.ts              visibility condition parsing ($when / isVisible)
+    exclusivity.ts             pairwise mutual-exclusivity analysis
     duplicateIds.ts            duplicate grouping
     association.ts             quickview.json → quickView.ts resolution
     validate.ts                the pure validation pipeline

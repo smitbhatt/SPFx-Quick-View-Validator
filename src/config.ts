@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { DEFAULT_CONFIG, Severity, ValidatorConfig } from './core/types';
+import { ConfiguredSeverity, DEFAULT_CONFIG, Severity, ValidatorConfig } from './core/types';
 
 export const CONFIG_SECTION = 'spfxQuickViewValidator';
 
 const SEVERITIES: Severity[] = ['error', 'warning', 'information'];
+const CONDITIONAL_DUPLICATE_SEVERITIES: ConfiguredSeverity[] = ['off', 'warning', 'information'];
 
 function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) {
@@ -16,10 +17,18 @@ function clamp(value: number, min: number, max: number): number {
 export function readConfig(): ValidatorConfig {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
   const rawSeverity = config.get<string>('idPropertySeverity', DEFAULT_CONFIG.idPropertySeverity);
+  const rawConditional = config.get<string>('conditionalDuplicateSeverity', DEFAULT_CONFIG.conditionalDuplicateSeverity);
   return {
     enableDuplicateIdCheck: config.get<boolean>('enableDuplicateIdCheck', DEFAULT_CONFIG.enableDuplicateIdCheck),
     enableDataBindingCheck: config.get<boolean>('enableDataBindingCheck', DEFAULT_CONFIG.enableDataBindingCheck),
     enableIdPropertyCheck: config.get<boolean>('enableIdPropertyCheck', DEFAULT_CONFIG.enableIdPropertyCheck),
+    enableVisibilityConditionAnalysis: config.get<boolean>(
+      'enableVisibilityConditionAnalysis',
+      DEFAULT_CONFIG.enableVisibilityConditionAnalysis
+    ),
+    conditionalDuplicateSeverity: CONDITIONAL_DUPLICATE_SEVERITIES.includes(rawConditional as ConfiguredSeverity)
+      ? (rawConditional as ConfiguredSeverity)
+      : DEFAULT_CONFIG.conditionalDuplicateSeverity,
     idPropertySeverity: SEVERITIES.includes(rawSeverity as Severity) ? (rawSeverity as Severity) : DEFAULT_CONFIG.idPropertySeverity,
     validationDebounceMs: clamp(
       config.get<number>('validationDebounceMs', DEFAULT_CONFIG.validationDebounceMs),

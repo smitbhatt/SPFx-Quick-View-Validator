@@ -1,7 +1,9 @@
 import { TsAnalysisResult } from '../analyzer/analyzer';
 import { AssociationStatus } from './association';
 import { parseAdaptiveCardExpression } from './bindings';
+import { readOccurrenceVisibility } from './conditions';
 import { findDuplicateIds } from './duplicateIds';
+import { classifyDuplicateGroup, GroupClassification } from './exclusivity';
 import { parseQuickViewJson } from './jsonDocument';
 import { computeLineStarts, positionAt } from './positions';
 import { CoreDiagnostic, DiagnosticCodes, RelatedLocation, Severity, ValidatorConfig } from './types';
@@ -68,6 +70,34 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
   // ------------------------------------------------------ A. Duplicate IDs
   if (config.enableDuplicateIdCheck) {
     for (const group of findDuplicateIds(parsed.ids)) {
+      const visibilities = group.occurrences.map(readOccurrenceVisibility);
+      const classification: GroupClassification = config.enableVisibilityConditionAnalysis
+        ? classifyDuplicateGroup(visibilities)
+        : 'coexist';
+
+      let severity: Severity;
+      if (classification === 'exclusive') {
+        if (config.conditionalDuplicateSeverity === 'off') {
+          continue; // proven mutually exclusive → not reported at all
+        }
+        severity = config.conditionalDuplicateSeverity;
+      } else {
+        severity = classification === 'unproven' ? 'warning' : 'error';
+      }
+
+      const anyConditioned = visibilities.some((v) => v.condition.kind !== 'unconditional');
+      const note =
+        classification === 'exclusive'
+          ? ` These sibling elements are guarded by mutually exclusive visibility conditions ($when / isVisible), ` +
+            `so only one of them can render at runtime and the ID is effectively unique.`
+          : classification === 'unproven'
+            ? ` Mutual exclusivity of the visibility conditions ($when / isVisible) could not be proven statically, ` +
+              `so this is reported as a warning.`
+            : anyConditioned
+              ? ` The visibility conditions ($when / isVisible) on these elements can be true at the same time, ` +
+                `so more than one element can render.`
+              : '';
+
       const describe = (index: number): { text: string; location: RelatedLocation } => {
         const occurrence = group.occurrences[index];
         const position = positionAt(lineStarts, occurrence.offset);
@@ -89,12 +119,17 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
         const allListed = group.occurrences.map((_, index) => describe(index).text).join(', ');
         const othersListed = others.slice(0, MAX_RELATED_IN_MESSAGE).map((o) => o.text).join(', ');
 
+        const base =
+          classification === 'exclusive'
+            ? `Duplicate element ID "${group.id}". It appears ${group.occurrences.length} times in this document ` +
+              `at: ${allListed}.`
+            : `Duplicate element ID "${group.id}". It appears ${group.occurrences.length} times in this document ` +
+              `at: ${allListed}. This occurrence conflicts with: ${othersListed}. ` +
+              `Element IDs must be unique within an Adaptive Card.`;
+
         diagnostics.push({
-          severity: 'error',
-          message:
-            `Duplicate element ID "${group.id}". It appears ${group.occurrences.length} times in this document ` +
-            `at: ${allListed}. This occurrence conflicts with: ${othersListed}. ` +
-            `Element IDs must be unique within an Adaptive Card.`,
+          severity,
+          message: base + note,
           code: DiagnosticCodes.duplicateId,
           range: { offset: occurrence.offset, length: occurrence.length },
           related: others.map((o) => o.location),

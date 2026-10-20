@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -83,6 +83,26 @@
           "type": "boolean",
           "default": true,
           "description": "Report duplicate Adaptive Card element IDs (properties named \"id\") in the active quickview.json."
+        },
+        "spfxQuickViewValidator.enableVisibilityConditionAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Analyze $when / isVisible visibility conditions when checking duplicate element IDs. Proven mutually exclusive siblings are reported per \"conditionalDuplicateSeverity\", overlapping conditions stay errors, and conditions whose mutual exclusivity cannot be proven become warnings. Disable to report every duplicate as an error."
+        },
+        "spfxQuickViewValidator.conditionalDuplicateSeverity": {
+          "type": "string",
+          "enum": [
+            "off",
+            "warning",
+            "information"
+          ],
+          "enumDescriptions": [
+            "Do not report duplicate IDs whose visibility conditions are proven mutually exclusive (default).",
+            "Report proven mutually exclusive duplicates as warnings.",
+            "Report proven mutually exclusive duplicates as informational hints."
+          ],
+          "default": "off",
+          "description": "Severity used for duplicate element IDs inside sibling conditions ($when / isVisible) that have been proven mutually exclusive, so only one element can render at runtime."
         },
         "spfxQuickViewValidator.enableDataBindingCheck": {
           "type": "boolean",

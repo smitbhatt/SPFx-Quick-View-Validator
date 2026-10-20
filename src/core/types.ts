@@ -5,6 +5,9 @@
 
 export type Severity = 'error' | 'warning' | 'information';
 
+/** A severity that may also suppress a diagnostic entirely. */
+export type ConfiguredSeverity = Severity | 'off';
+
 /** A range expressed as character offsets into a document. */
 export interface SourceRange {
   offset: number;
@@ -59,6 +62,16 @@ export interface ValidatorConfig {
   enableDuplicateIdCheck: boolean;
   enableDataBindingCheck: boolean;
   enableIdPropertyCheck: boolean;
+  /**
+   * When true, `$when` / `isVisible` conditions of duplicate-ID occurrences
+   * are analyzed: proven-mutually-exclusive siblings use
+   * `conditionalDuplicateSeverity`, unprovable conditions become warnings
+   * and overlapping conditions stay errors. When false every duplicate is
+   * reported as an error (legacy behavior).
+   */
+  enableVisibilityConditionAnalysis: boolean;
+  /** Severity for duplicates proven mutually exclusive (`off` = silent). */
+  conditionalDuplicateSeverity: ConfiguredSeverity;
   idPropertySeverity: Severity;
   validationDebounceMs: number;
   allowJsonComments: boolean;
@@ -73,6 +86,8 @@ export const DEFAULT_CONFIG: ValidatorConfig = {
   enableDuplicateIdCheck: true,
   enableDataBindingCheck: true,
   enableIdPropertyCheck: true,
+  enableVisibilityConditionAnalysis: true,
+  conditionalDuplicateSeverity: 'off',
   idPropertySeverity: 'warning',
   validationDebounceMs: 250,
   allowJsonComments: false,

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.7
+
+- **Condition-aware duplicate-ID detection:** duplicates are now analyzed
+  against the elements' `$when` / `isVisible` visibility conditions. Sibling
+  elements whose conditions are proven mutually exclusive (e.g.
+  `${dayRemaining > 1}` vs `${dayRemaining <= 1}`, `${flag}` vs `${!flag}`,
+  `isVisible: true` vs `false`, `==` vs `!=`) are not reported by default —
+  only one of them can render at runtime. Duplicates whose conditions can
+  overlap (e.g. `${count > 0}` vs `${count < 10}`) stay errors, and
+  conditions whose mutual exclusivity cannot be proven statically are
+  reported as warnings.
+- New setting `spfxQuickViewValidator.conditionalDuplicateSeverity`
+  (`off` | `warning` | `information`, default `off`) controls what — if
+  anything — is reported for proven mutually exclusive duplicates.
+- New setting `spfxQuickViewValidator.enableVisibilityConditionAnalysis`
+  (default `true`) restores the previous always-error behavior when disabled.
+
 ## 1.1.6
 
 - **Changed defaults:** `enableDataBindingCheck` and `enableIdPropertyCheck`

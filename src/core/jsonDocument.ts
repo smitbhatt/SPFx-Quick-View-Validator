@@ -17,6 +17,16 @@ export interface IdReference {
   offset: number;
   length: number;
   node: Node;
+  /**
+   * JSON path of the container that holds this element (e.g. `$.body`).
+   * Elements that share a container are siblings — only sibling elements
+   * can be proven mutually exclusive through their visibility conditions.
+   */
+  containerPath: string;
+  /** Raw `$when` value node of the owning element object, when present. */
+  whenNode?: Node;
+  /** Raw `isVisible` value node of the owning element object, when present. */
+  isVisibleNode?: Node;
 }
 
 /** An Adaptive Card templating expression such as `${employee.name}` found in a string value. */
@@ -63,7 +73,7 @@ export function parseQuickViewJson(text: string, options: JsonParseOptions): Par
   const ids: IdReference[] = [];
   const bindings: BindingReference[] = [];
   if (root) {
-    walk(root, '$', text, ids, bindings);
+    walk(root, '$', '$', text, ids, bindings);
   }
 
   return { root, syntaxErrors, ids, bindings };
@@ -73,11 +83,21 @@ function childPath(parent: string, key: string): string {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? `${parent}.${key}` : `${parent}['${key}']`;
 }
 
-function walk(node: Node, path: string, text: string, ids: IdReference[], bindings: BindingReference[]): void {
+function walk(
+  node: Node,
+  path: string,
+  containerPath: string,
+  text: string,
+  ids: IdReference[],
+  bindings: BindingReference[]
+): void {
   switch (node.type) {
     case 'object': {
       // jsonc-parser represents object entries as `property` nodes whose
       // children are [keyNode, valueNode].
+      let idRef: IdReference | undefined;
+      let whenNode: Node | undefined;
+      let isVisibleNode: Node | undefined;
       for (const propertyNode of node.children ?? []) {
         if (propertyNode.type !== 'property') {
           continue;
@@ -94,22 +114,35 @@ function walk(node: Node, path: string, text: string, ids: IdReference[], bindin
         if (key === 'id' && valueNode.type === 'string' && typeof valueNode.value === 'string' && valueNode.value.length > 0) {
           // Skip the surrounding quotes when reporting the range.
           const quotedLength = Math.max(valueNode.length - 2, 0);
-          ids.push({
+          idRef = {
             value: valueNode.value,
             path: `${valuePath}`,
             offset: valueNode.offset + 1,
             length: quotedLength,
-            node: valueNode
-          });
+            node: valueNode,
+            containerPath
+          };
+          ids.push(idRef);
+        } else if (key === '$when') {
+          whenNode = valueNode;
+        } else if (key === 'isVisible') {
+          isVisibleNode = valueNode;
         }
 
-        walk(valueNode, valuePath, text, ids, bindings);
+        // Children of this object are siblings within it.
+        walk(valueNode, valuePath, path, text, ids, bindings);
+      }
+      // Visibility properties may appear before or after `id` — attach them
+      // once the whole element object has been seen.
+      if (idRef) {
+        idRef.whenNode = whenNode;
+        idRef.isVisibleNode = isVisibleNode;
       }
       break;
     }
     case 'array': {
       const children = node.children ?? [];
-      children.forEach((child, index) => walk(child, `${path}[${index}]`, text, ids, bindings));
+      children.forEach((child, index) => walk(child, `${path}[${index}]`, path, text, ids, bindings));
       break;
     }
     case 'string': {

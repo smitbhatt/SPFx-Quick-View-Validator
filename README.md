@@ -12,7 +12,7 @@ finds the associated Quick View TypeScript implementation
 
 | Check | Default severity | Code |
 | --- | --- | --- |
-| Duplicate Adaptive Card element IDs (`"id"` at any nesting depth) | Error | `duplicateId` |
+| Duplicate Adaptive Card element IDs (`"id"` at any nesting depth) | Error (Warning when visibility conditions can't be proven exclusive) | `duplicateId` |
 | Malformed JSON | Error | `jsonSyntax` |
 | Data bindings `${...}` not provided by the `data` getter | Error | `missingDataBinding` |
 | Element IDs without a matching TypeScript property (project convention) | Warning (configurable) | `missingIdProperty` |
@@ -28,12 +28,12 @@ scanning, and unrelated JSON files are never touched.
 
 ## What it does
 
-### 1. Duplicate element ID detection
+### 1. Duplicate element ID detection (with visibility-condition awareness)
 
 Every property named `id` with a non-empty string value is collected,
 recursively, across all objects and arrays. Each occurrence of a duplicated ID
-gets its own error, underlining exactly the ID value, listing the JSON paths
-and line/column positions of **all** conflicting occurrences:
+gets its own diagnostic, underlining exactly the ID value, listing the JSON
+paths and line/column positions of **all** conflicting occurrences:
 
 ```
 Duplicate element ID "employeeName". It appears 2 times in this document at:
@@ -42,6 +42,34 @@ $.body[1].id (7:13). Element IDs must be unique within an Adaptive Card.
 ```
 
 IDs are **never** renamed or modified automatically.
+
+Before reporting, the extension analyzes the `$when` / `isVisible` visibility
+conditions of the duplicated elements. Sibling elements whose conditions are
+**proven mutually exclusive** cannot both render at runtime, so their shared
+ID is effectively unique:
+
+```json
+{ "type": "TextBlock", "id": "daysRemaining", "$when": "${dayRemaining > 1}",  "text": "More than a day left" }
+{ "type": "TextBlock", "id": "daysRemaining", "$when": "${dayRemaining <= 1}", "text": "Last day" }
+```
+
+This pair is recognized as exclusive and **not reported** by default (change
+the severity with `spfxQuickViewValidator.conditionalDuplicateSeverity`).
+
+The severity model for duplicates:
+
+| Situation | Severity |
+| --- | --- |
+| No conditions, or conditions that can both be true (e.g. `${count > 0}` vs `${count < 10}`) | **Error** |
+| Conditions exist but mutual exclusivity cannot be proven (function calls, `&&`/`\|\|`, different containers, ...) | **Warning** |
+| Mutual exclusivity proven (opposite bounds, `==` vs `!=`, `${flag}` vs `${!flag}`, `isVisible: true` vs `false`, ...) | Per `conditionalDuplicateSeverity` (`off` by default) |
+
+Analyzed condition shapes: boolean `true`/`false`, truthiness (`${flag}`,
+`${!flag}`) and single comparisons of a property against a constant
+(`>`, `>=`, `<`, `<=`, `==`, `!=`, including flipped forms like `${1 < dayRemaining}`
+and quoted string or boolean constants). `$when` and `isVisible` are analyzed
+together, and `$when`-guarded elements are compared with `isVisible`-guarded
+ones. Anything beyond that is never guessed at — it degrades to a warning.
 
 ### 2. JSON syntax validation
 
@@ -150,12 +178,12 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.1.6.vsix` from the
+Download `spfx-quick-view-validator-1.1.7.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.1.6.vsix
+code --install-extension spfx-quick-view-validator-1.1.7.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -204,6 +232,8 @@ Quick fixes (light bulb) on diagnostics:
 | Setting | Default | Description |
 | --- | --- | --- |
 | `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. |
+| `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
+| `spfxQuickViewValidator.conditionalDuplicateSeverity` | `off` | Severity for duplicates proven mutually exclusive by their visibility conditions: `off` (not reported), `warning` or `information`. |
 | `spfxQuickViewValidator.enableDataBindingCheck` | `false` | Validate `${...}` bindings against the data getter. |
 | `spfxQuickViewValidator.enableIdPropertyCheck` | `false` | Check element IDs against TypeScript property declarations. |
 | `spfxQuickViewValidator.idPropertySeverity` | `warning` | `error`, `warning` or `information`. |
@@ -257,6 +287,13 @@ Result:
   skipped (unknown) — never reported as definite errors.
 - **Complex expressions.** Only `${path.to.property}` is analyzed. Function
   calls, indexing, filters, ternaries and arithmetic are ignored on purpose.
+- **Visibility conditions.** Only single-property expressions (`${flag}`,
+  `${path > 5}`) are analyzed for mutual exclusivity. Logical connectives
+  (`&&`, `||`), arithmetic and function calls cannot be proven exclusive, so
+  duplicate IDs guarded by them are reported as warnings. Conditions on a
+  *parent* container are not considered, and duplicates in different
+  containers are never claimed exclusive. Continuous (non-integer) ranges are
+  assumed, which can only over-report — never silence a real conflict.
 - **Escaped strings.** Binding offsets assume the raw text matches the parsed
   string value; escape sequences inside a binding expression shift positions
   slightly (the diagnostic is still reported on the correct string value).
