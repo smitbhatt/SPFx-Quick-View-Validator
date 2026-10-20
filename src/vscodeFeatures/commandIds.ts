@@ -6,6 +6,8 @@ export const CommandIds = {
   showSummary: 'spfxQuickViewValidator.showSummary',
   /** Internal: reveal all occurrences of a duplicated element ID. */
   goToConflictingId: 'spfxQuickViewValidator.goToConflictingId',
+  /** Internal: replace one duplicate occurrence with a freshly generated unique ID. */
+  fixDuplicateId: 'spfxQuickViewValidator.fixDuplicateId',
   /** Internal: open the associated TypeScript file (at the data getter). */
   openTypeScriptFile: 'spfxQuickViewValidator.openTypeScriptFile'
 } as const;

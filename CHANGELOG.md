@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.9
+
+- **New quick fix: "Fix duplicate ID".** Every duplicate-ID diagnostic on a
+  non-first occurrence now offers a one-click fix that replaces that
+  occurrence with a freshly generated unique ID:
+  - A cryptographically secure six-character hex suffix is inserted before
+    the first `${...}` marker (`text_${$index}` → `text_a3f91c_${$index}`),
+    preserving every dynamic expression byte-for-byte, or appended for IDs
+    without expressions (`employee_name` → `employee_name_a3f91c`).
+  - The first occurrence always keeps the original ID; later occurrences are
+    fixed individually and each fix generates a distinct ID (checked against
+    all IDs in the document, previous fixes included).
+  - Only the ID string value is spliced — formatting, comments, whitespace,
+    escape sequences and line endings are untouched. The edit re-parses the
+    current document first, so stale diagnostics can never corrupt the file,
+    and validation reruns immediately after the fix.
+  - Available from the editor lightbulb, `Ctrl+.` and the Problems panel's
+    **Quick Fix...** menu; the action title previews the generated ID.
+
 ## 1.1.8
 
 - **Numeric condition comparisons are solved over integers by default:**

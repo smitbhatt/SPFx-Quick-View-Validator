@@ -4,6 +4,8 @@ import * as vscode from 'vscode';
 import { analyzeQuickViewTypeScript, TsAnalysisResult } from './analyzer/analyzer';
 import { CONFIG_SECTION, readConfig } from './config';
 import { Association, discoverTypeScriptCandidates, isQuickViewJsonPath, resolveAssociatedTypeScript } from './core/association';
+import { planDuplicateIdFix } from './core/duplicateFix';
+import { parseQuickViewJson } from './core/jsonDocument';
 import { AssociationContext, validateQuickView } from './core/validate';
 import { CommandIds } from './vscodeFeatures/commandIds';
 import { QuickViewCodeActionProvider } from './vscodeFeatures/codeActions';
@@ -140,6 +142,11 @@ export class ExtensionController implements vscode.Disposable {
       vscode.commands.registerCommand(CommandIds.showSummary, () => this.commandShowSummary()),
       vscode.commands.registerCommand(CommandIds.goToConflictingId, (uriString: string, occurrences: Array<{ offset: number; length: number; path: string; line: number; column: number }>) =>
         this.commandGoToConflictingId(uriString, occurrences)
+      ),
+      vscode.commands.registerCommand(
+        CommandIds.fixDuplicateId,
+        (uriString: string, offset: number, length: number, expectedId: string, suffix: string | undefined) =>
+          this.commandFixDuplicateId(uriString, offset, length, expectedId, suffix)
       ),
       vscode.commands.registerCommand(CommandIds.openTypeScriptFile, (tsPath: string, line: number, column: number) =>
         this.commandOpenTypeScriptFile(tsPath, line, column)
@@ -664,6 +671,59 @@ export class ExtensionController implements vscode.Disposable {
     if (pick) {
       reveal(pick.occurrence);
     }
+  }
+
+  private async commandFixDuplicateId(
+    uriString: string,
+    offset: number,
+    length: number,
+    expectedId: string,
+    suffix: string | undefined
+  ): Promise<void> {
+    if (typeof uriString !== 'string' || typeof expectedId !== 'string' || expectedId.length === 0) {
+      return;
+    }
+    let document: vscode.TextDocument;
+    try {
+      document = await vscode.workspace.openTextDocument(vscode.Uri.parse(uriString));
+    } catch {
+      return;
+    }
+
+    // Re-parse the *current* document so a stale diagnostic can never
+    // produce an incorrect edit, and so the uniqueness check sees every ID
+    // (including fixes applied moments ago).
+    const config = readConfig();
+    const text = document.getText();
+    const parsed = parseQuickViewJson(text, {
+      allowComments: config.allowJsonComments,
+      allowTrailingCommas: config.allowTrailingCommas
+    });
+    const previewedSuffix = typeof suffix === 'string' && /^[0-9a-f]+$/.test(suffix) ? suffix : undefined;
+    const plan = planDuplicateIdFix(
+      text,
+      { offset, length, expectedId },
+      parsed.ids,
+      previewedSuffix !== undefined ? () => previewedSuffix : undefined
+    );
+
+    if ('error' in plan) {
+      await vscode.window.showWarningMessage(`SPFx Quick View Validator: ${plan.error} — the fix was not applied.`);
+      return;
+    }
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+      document.uri,
+      new vscode.Range(document.positionAt(offset), document.positionAt(offset + length)),
+      plan.replacementText
+    );
+    const applied = await vscode.workspace.applyEdit(edit);
+    if (!applied) {
+      await vscode.window.showErrorMessage('SPFx Quick View Validator: could not apply the duplicate ID fix.');
+      return;
+    }
+    this.scheduleValidation(document, true);
   }
 
   private async commandOpenTypeScriptFile(tsPath: string, line: number, column: number): Promise<void> {

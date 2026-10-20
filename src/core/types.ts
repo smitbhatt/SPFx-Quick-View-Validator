@@ -38,6 +38,13 @@ export type DiagnosticData =
       kind: 'duplicateId';
       id: string;
       occurrences: Array<SourceRange & Position & { path: string }>;
+      /**
+       * Offset of the first occurrence — the one that keeps the original ID.
+       * Every later occurrence offers the "Fix duplicate ID" quick fix.
+       */
+      keepOffset: number;
+      /** Every element ID in the document; used to generate unique fix candidates. */
+      allIds: string[];
     }
   | {
       kind: 'openTypeScript';

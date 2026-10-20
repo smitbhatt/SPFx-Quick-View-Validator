@@ -183,12 +183,12 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.1.8.vsix` from the
+Download `spfx-quick-view-validator-1.1.9.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.1.8.vsix
+code --install-extension spfx-quick-view-validator-1.1.9.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -229,8 +229,49 @@ change the pairing.
 
 Quick fixes (light bulb) on diagnostics:
 
+- **Fix duplicate ID** — replace a later duplicate occurrence with a freshly
+  generated unique ID (details below).
 - **Go to conflicting ID occurrences** — jump between duplicated IDs.
 - **Open `<quickView.ts>` (data getter)** — open the TS file at the getter.
+
+### Fix duplicate ID (quick fix)
+
+Put the cursor on a duplicate-ID diagnostic and choose **Fix duplicate ID**
+from the lightbulb menu (`Ctrl+.`), or from **Quick Fix...** in the Problems
+panel. Before:
+
+```json
+{ "type": "TextBlock", "id": "employee_name",   "text": "${teammateName}" },
+{ "type": "TextBlock", "id": "employee_name",   "text": "${stepAwaitingAction}" },
+{ "type": "TextBlock", "id": "employee_${$index}", "text": "row" }
+```
+
+Fixing the second occurrence:
+
+```json
+{ "type": "TextBlock", "id": "employee_name",       "text": "${teammateName}" },
+{ "type": "TextBlock", "id": "employee_name_a3f91c", "text": "${stepAwaitingAction}" },
+{ "type": "TextBlock", "id": "employee_${$index}",   "text": "row" }
+```
+
+- A short six-character hex suffix is generated with a cryptographically
+  secure RNG. IDs containing `${...}` expressions keep them byte-for-byte:
+  the suffix is inserted immediately before the **first** `${` marker
+  (`text_..._dueToday_${$index}` → `text_..._dueToday_a3f91c_${$index}`,
+  `${employeeId}_label` → `a3f91c_${employeeId}_label`). IDs without
+  expressions get the suffix appended (`employee_name` → `employee_name_a3f91c`).
+- The **first** occurrence always keeps the original ID; every later
+  occurrence offers its own fix, each generating a distinct ID (candidates
+  are checked against every ID in the document, previous fixes included).
+  Fixing one occurrence never renames the others.
+- Only the ID string value is edited — indentation, comments, whitespace,
+  property order, escape sequences and line endings are untouched.
+  Diagnostics refresh immediately after the edit; a fix is refused (with an
+  explanation) if the document changed since the diagnostic was reported.
+
+Note: renaming an ID does **not** update references elsewhere in the project.
+If other files, code or the element-ID ↔ TypeScript property convention refer
+to the old ID, update those separately.
 
 ## Settings
 

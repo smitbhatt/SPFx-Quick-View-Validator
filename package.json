@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "onCommand:spfxQuickViewValidator.selectTypeScriptFile",
     "onCommand:spfxQuickViewValidator.showSummary",
     "onCommand:spfxQuickViewValidator.goToConflictingId",
+    "onCommand:spfxQuickViewValidator.fixDuplicateId",
     "onCommand:spfxQuickViewValidator.openTypeScriptFile"
   ],
   "contributes": {
@@ -66,6 +67,12 @@
       {
         "command": "spfxQuickViewValidator.goToConflictingId",
         "title": "Go to conflicting ID occurrences",
+        "category": "SPFx Quick View Validator",
+        "enablement": "false"
+      },
+      {
+        "command": "spfxQuickViewValidator.fixDuplicateId",
+        "title": "Fix duplicate ID",
         "category": "SPFx Quick View Validator",
         "enablement": "false"
       },

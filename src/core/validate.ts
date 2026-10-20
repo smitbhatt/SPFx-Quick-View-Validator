@@ -136,6 +136,8 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
           data: {
             kind: 'duplicateId',
             id: group.id,
+            keepOffset: group.occurrences[0].offset,
+            allIds: parsed.ids.map((id) => id.value),
             occurrences: group.occurrences.map((occ) => {
               const pos = positionAt(lineStarts, occ.offset);
               return { path: occ.path, offset: occ.offset, length: occ.length, line: pos.line, column: pos.column };
