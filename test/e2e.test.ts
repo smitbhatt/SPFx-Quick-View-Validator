@@ -164,7 +164,7 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
     assert.strictEqual(DEFAULT_CONFIG.enableIdPropertyCheck, true);
     assert.strictEqual(DEFAULT_CONFIG.idPropertySeverity, 'warning');
     assert.ok(DEFAULT_CONFIG.validationDebounceMs >= 0);
-    assert.deepStrictEqual(DEFAULT_CONFIG.jsonFilePatterns, ['quickview*.json']);
+    assert.deepStrictEqual(DEFAULT_CONFIG.jsonFilePatterns, ['quickview*.json', '*Template.json']);
     assert.strictEqual(DEFAULT_CONFIG.requireManualSelection, false);
   });
 });

@@ -66,10 +66,11 @@ export interface CoreDiagnostic {
 
 /**
  * Default file-name patterns (case-insensitive, `*` wildcard) that identify
- * Quick View template JSON files: covers `quickview.json`, `QuickView.json`
- * and the standard SPFx `QuickViewTemplate.json`.
+ * Quick View template JSON files. Covers `quickview.json`, `QuickView.json`
+ * and the standard SPFx `QuickViewTemplate.json`, plus the common convention
+ * of naming every Quick View template `<Something>Template.json`.
  */
-export const DEFAULT_JSON_FILE_PATTERNS = ['quickview*.json'];
+export const DEFAULT_JSON_FILE_PATTERNS = ['quickview*.json', '*Template.json'];
 
 /** Extension configuration, mapped from VS Code settings. */
 export interface ValidatorConfig {

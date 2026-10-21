@@ -246,21 +246,22 @@ without saving.
 
 JSON files are considered Quick View templates when their name matches one of
 the configured `spfxQuickViewValidator.jsonFilePatterns` (default
-`quickview*.json`, case-insensitive), which covers `quickview.json`,
-`QuickView.json` and the standard `QuickViewTemplate.json`. If your project
-uses a different file name, add it to the setting — e.g.
-`["quickview*.json", "RiseCard.json"]`.
+`["quickview*.json", "*Template.json"]`, case-insensitive). That covers
+`quickview.json`, `QuickView.json`, the standard `QuickViewTemplate.json` and
+any project using the `<Something>Template.json` naming convention (e.g.
+`RiseCardTemplate.json`). If your project uses a different file name, add it to
+the setting — e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`.
 
 ---
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.2.0.vsix` from the
+Download `spfx-quick-view-validator-1.2.1.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.2.0.vsix
+code --install-extension spfx-quick-view-validator-1.2.1.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -359,7 +360,7 @@ to the old ID, update those separately.
 | `spfxQuickViewValidator.validationDebounceMs` | `250` | Debounce while typing (0–5000 ms). |
 | `spfxQuickViewValidator.allowJsonComments` | `false` | Permit `//` and `/* */` in `quickview.json`. |
 | `spfxQuickViewValidator.allowTrailingCommas` | `false` | Permit trailing commas. |
-| `spfxQuickViewValidator.jsonFilePatterns` | `["quickview*.json"]` | File-name patterns treated as Quick View templates (case-insensitive, `*` wildcard). Add your own names, e.g. `["quickview*.json", "RiseCard.json"]`. |
+| `spfxQuickViewValidator.jsonFilePatterns` | `["quickview*.json", "*Template.json"]` | File-name patterns treated as Quick View templates (case-insensitive, `*` wildcard). Covers `quickview.json`, `QuickViewTemplate.json` and any `<Something>Template.json`. Add your own names, e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`. |
 | `spfxQuickViewValidator.requireManualSelection` | `false` | When `true`, only files selected via the **Select Quick View Files** wizard are validated; automatic name matching is ignored. |
 
 ---
@@ -462,9 +463,9 @@ Result:
 ## Why am I getting no diagnostics?
 
 1. **Check the file name.** Only files matching `spfxQuickViewValidator.jsonFilePatterns`
-   (default `quickview*.json`) are validated. If your template is named
-   differently, add its name to the setting — that is the most common reason
-   a file produces no diagnostics at all.
+   (default `["quickview*.json", "*Template.json"]`) are validated. If your
+   template is named differently, add its name to the setting — that is the most
+   common reason a file produces no diagnostics at all.
 2. **Check the feature settings.** `spfxQuickViewValidator.enableDataBindingCheck`
    and `spfxQuickViewValidator.enableIdPropertyCheck` are **off by default** —
    turn them on if you expect binding or ID/property diagnostics.

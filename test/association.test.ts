@@ -100,6 +100,17 @@ suite('Quick View file association', () => {
     assert.strictEqual(isQuickViewJsonPath('C:/proj/RiseCard.json', DEFAULT_CONFIG.jsonFilePatterns), false);
   });
 
+  test('the default patterns cover <Something>Template.json names', () => {
+    const defaults = DEFAULT_CONFIG.jsonFilePatterns;
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/QuickViewTemplate.json', defaults), true);
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/RiseCardTemplate.json', defaults), true);
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/MyCardTemplate.json', defaults), true);
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/quickview.json', defaults), true);
+    // Unrelated JSON files stay out of scope.
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/AdaptiveCard.json', defaults), false);
+    assert.strictEqual(isQuickViewJsonPath('C:/proj/package.json', defaults), false);
+  });
+
   test('an empty pattern list falls back to the built-in default', () => {
     assert.strictEqual(matchesJsonFilePatterns('C:/proj/quickview.json', []), true);
     assert.strictEqual(matchesJsonFilePatterns('C:/proj/anything.json', []), false);

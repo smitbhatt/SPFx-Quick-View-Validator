@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1
+
+- **`*Template.json` files are now validated by default.** Projects that name
+  every Quick View template `<Something>Template.json` (e.g.
+  `RiseCardTemplate.json`) were previously only picked up if
+  `spfxQuickViewValidator.jsonFilePatterns` was customized, because the default
+  was `quickview*.json`. The default is now
+  `["quickview*.json", "*Template.json"]`, so the standard
+  `QuickViewTemplate.json` **and** custom `…Template.json` names work out of
+  the box. Unrelated JSON files (e.g. `package.json`, `AdaptiveCard.json`)
+  remain out of scope.
+
 ## 1.2.0
 
 - **Complete, context-aware Adaptive Card templating validation.** Data
