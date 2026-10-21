@@ -1,4 +1,6 @@
 import * as assert from 'assert';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 import { isQuickViewJsonPath } from '../src/core/association';
 import { DEFAULT_CONFIG } from '../src/core/types';
 import {
@@ -154,6 +156,25 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
       config: config({ enableIdPropertyCheck: false })
     });
     assert.ok(!codes(noIdRule).includes(DiagnosticCodes.missingIdProperty));
+  });
+
+  /**
+   * The extension's *shipped* defaults (package.json) decide what a user gets
+   * without configuring anything, so assert the ones users depend on directly
+   * against package.json rather than only against the in-code fallback.
+   */
+  test('package.json ships the documented user-facing defaults', () => {
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+    const props = pkg.contributes.configuration.properties as Record<string, { default: unknown }>;
+    // The data-binding check must be on out of the box.
+    assert.strictEqual(props['spfxQuickViewValidator.enableDataBindingCheck'].default, true);
+    // ID/property pairing stays opt-in (project-specific convention).
+    assert.strictEqual(props['spfxQuickViewValidator.enableIdPropertyCheck'].default, false);
+    // And the JSON file patterns cover <Something>Template.json.
+    assert.deepStrictEqual(props['spfxQuickViewValidator.jsonFilePatterns'].default, [
+      'quickview*.json',
+      '*Template.json',
+    ]);
   });
 
   test('default configuration has strict JSON and all checks enabled', () => {

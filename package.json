@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -126,7 +126,7 @@
         },
         "spfxQuickViewValidator.enableDataBindingCheck": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Validate Adaptive Card templating expressions such as ${employeeName} against the data getter of the associated Quick View TypeScript file."
         },
         "spfxQuickViewValidator.enableIdPropertyCheck": {

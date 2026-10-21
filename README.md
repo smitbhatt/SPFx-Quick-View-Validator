@@ -102,9 +102,9 @@ quickView.ts  get data(): IQuickViewData { return { ... } }
 quickview.json  "${employee.department.name}"  ──►  resolver  ──►  diagnostic
 ```
 
-The binding check is **off by default**; enable it with
-`spfxQuickViewValidator.enableDataBindingCheck` (it needs an associated
-TypeScript file — see *File association*).
+The binding check is **on by default**; disable it with
+`spfxQuickViewValidator.enableDataBindingCheck: false`. It needs an associated
+TypeScript file — see *File association*.
 
 #### Supported expression syntax
 
@@ -256,12 +256,12 @@ the setting — e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.2.1.vsix` from the
+Download `spfx-quick-view-validator-1.2.2.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.2.1.vsix
+code --install-extension spfx-quick-view-validator-1.2.2.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -354,7 +354,7 @@ to the old ID, update those separately.
 | `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
 | `spfxQuickViewValidator.conditionalDuplicateSeverity` | `off` | Severity for duplicates proven mutually exclusive by their visibility conditions: `off` (not reported), `warning` or `information`. |
 | `spfxQuickViewValidator.numericConditionDomain` | `integer` | Domain for numeric condition comparisons. `integer` proves `${x > 1}` vs `${x < 2}` exclusive (adjacent integer bounds); set `continuous` when a numeric property can be fractional. |
-| `spfxQuickViewValidator.enableDataBindingCheck` | `false` | Validate `${...}` bindings against the data getter. |
+| `spfxQuickViewValidator.enableDataBindingCheck` | `true` | Validate `${...}` bindings against the data getter. |
 | `spfxQuickViewValidator.enableIdPropertyCheck` | `false` | Check element IDs against TypeScript property declarations. |
 | `spfxQuickViewValidator.idPropertySeverity` | `warning` | `error`, `warning` or `information`. |
 | `spfxQuickViewValidator.validationDebounceMs` | `250` | Debounce while typing (0–5000 ms). |
@@ -443,7 +443,8 @@ Result:
 ## Troubleshooting binding validation
 
 1. **No binding diagnostics at all?** `spfxQuickViewValidator.enableDataBindingCheck`
-   is **off by default**. Turn it on, then reload the JSON.
+   is **on by default** — first make sure it has not been turned off, then reload
+   the JSON.
 2. **A warning instead of an error?** The `data` getter could only be
    **partially** resolved (a spread, a computed key, an untyped value), so a
    missing binding is downgraded to a warning. Declare a return type
@@ -467,8 +468,8 @@ Result:
    template is named differently, add its name to the setting — that is the most
    common reason a file produces no diagnostics at all.
 2. **Check the feature settings.** `spfxQuickViewValidator.enableDataBindingCheck`
-   and `spfxQuickViewValidator.enableIdPropertyCheck` are **off by default** —
-   turn them on if you expect binding or ID/property diagnostics.
+   is **on by default**; `spfxQuickViewValidator.enableIdPropertyCheck` is
+   **off** — turn that on if you expect ID/property diagnostics.
 3. Run **Show Validation Summary** — it prints the association status
    (`resolved` / `ambiguous` / `not found`), the candidates found, the Quick
    View class, and the resolved data properties.

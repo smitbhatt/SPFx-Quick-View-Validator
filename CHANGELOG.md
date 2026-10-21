@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.2
+
+- **The data-binding check is now on by default.** `spfxQuickViewValidator.enableDataBindingCheck`
+  defaulted to `false`, so `${...}` expression validation against the paired
+  `quickView.ts` `data` getter produced nothing until it was enabled manually.
+  It now defaults to `true`: open a Quick View template with an associated
+  TypeScript file and binding diagnostics appear immediately. Set it to `false`
+  to opt out. `spfxQuickViewValidator.enableIdPropertyCheck` stays **off**
+  (it is a project-specific convention, not a universal Adaptive Card
+  requirement).
+
 ## 1.2.1
 
 - **`*Template.json` files are now validated by default.** Projects that name
