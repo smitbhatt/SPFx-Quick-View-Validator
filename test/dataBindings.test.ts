@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { parseAdaptiveCardExpression } from '../src/core/bindings';
+import { parseExpression } from '../src/core/bindingResolver';
 import {
   analyzeFixture,
   byCode,
@@ -27,7 +27,8 @@ suite('Data binding validation', () => {
     const missing = firstWithCode(diagnostics, DiagnosticCodes.missingDataBinding);
     assert.strictEqual(missing.severity, 'error');
     assert.ok(missing.message.includes('"missingProp"'));
-    assert.strictEqual(json.substring(missing.range.offset, missing.range.offset + missing.range.length), '${missingProp}');
+    // The underline covers the property name, not the `${...}` markers.
+    assert.strictEqual(json.substring(missing.range.offset, missing.range.offset + missing.range.length), 'missingProp');
   });
 
   test('8. valid nested bindings resolve through the declared data type', () => {
@@ -44,7 +45,10 @@ suite('Data binding validation', () => {
     const diagnostics = validate(json, { tsAnalysis: basicAnalysis, association });
     const missing = firstWithCode(diagnostics, DiagnosticCodes.missingDataBinding);
     assert.strictEqual(missing.severity, 'error');
-    assert.ok(missing.message.includes('"address.street"'), `unexpected message: ${missing.message}`);
+    assert.ok(missing.message.includes('"street"'), `unexpected message: ${missing.message}`);
+    assert.ok(missing.message.includes('employee.address'), `unexpected message: ${missing.message}`);
+    // Only the failing segment is underlined.
+    assert.strictEqual(json.substring(missing.range.offset, missing.range.offset + missing.range.length), 'street');
   });
 
   test('nested bindings are never treated as independent top-level properties', () => {
@@ -88,16 +92,29 @@ suite('Data binding validation', () => {
 
   test('17. unsupported expressions are skipped without false positives', () => {
     const json = `{
-      "a": "\${iif(state, 'yes', 'no')}",
-      "b": "\${items[0].name}",
       "c": "\${employee['name']}",
-      "d": "\${employee.name | upper}",
+      "d": "\${employeeName | upper}",
       "e": "\${}",
       "f": "\${ }",
-      "g": "\${formatNumber(employeeName)}"
+      "g": "\${formatNumber(employeeName)}",
+      "h": "\${employee.name | lower}"
     }`;
     const diagnostics = validate(json, { tsAnalysis: basicAnalysis, association });
     assert.deepStrictEqual(byCode(diagnostics, DiagnosticCodes.missingDataBinding), []);
+  });
+
+  test('supported expression syntax is validated instead of skipped', () => {
+    const json = `{
+      "a": "\${state === 'open' ? employeeName : employeeEmail}",
+      "b": "\${employee.address.city}",
+      "c": "\${$root.employeeName}"
+    }`;
+    const diagnostics = validate(json, { tsAnalysis: basicAnalysis, association });
+    const missing = byCode(diagnostics, DiagnosticCodes.missingDataBinding);
+    // `state` is not part of the basic fixture's data; the rest resolves.
+    assert.strictEqual(missing.length, 1, JSON.stringify(missing));
+    assert.ok(missing[0].message.includes('state'));
+    assert.strictEqual(json.substring(missing[0].range.offset, missing[0].range.offset + missing[0].range.length), 'state');
   });
 
   test('an unresolvable data getter (any) skips binding checks with a single warning', () => {
@@ -109,7 +126,7 @@ suite('Data binding validation', () => {
     assert.strictEqual(warning.severity, 'warning');
   });
 
-  test('spread-based getters downgrade missing-binding findings to warnings', () => {
+  test('spread-based getters still downgrade unknown bindings to warnings', () => {
     const analysis = analyzeFixture('spreadGetter', 'QuickView.ts');
     const json = `{
       "known": "\${subtitle}",
@@ -118,7 +135,10 @@ suite('Data binding validation', () => {
     }`;
     const diagnostics = validate(json, { tsAnalysis: analysis, association });
     const missing = byCode(diagnostics, DiagnosticCodes.missingDataBinding);
-    assert.strictEqual(missing.length, 2, 'the syntactically known key is fine; the rest is flagged');
+    // `title` is contributed by the spread and is resolvable through the
+    // checker, so only the truly unknown binding is flagged.
+    assert.strictEqual(missing.length, 1, JSON.stringify(missing));
+    assert.ok(missing[0].message.includes('totallyUnknown'));
     assert.ok(missing.every((d) => d.severity === 'warning'), 'partial analysis must never claim a definite error');
   });
 
@@ -132,11 +152,12 @@ suite('Data binding validation', () => {
     assert.ok(!codes(diagnostics).includes(DiagnosticCodes.missingDataBinding));
   });
 
-  test('expression parser accepts only statically analyzable paths', () => {
-    assert.deepStrictEqual(parseAdaptiveCardExpression('employeeName'), { supported: true, root: 'employeeName', members: [] });
-    assert.deepStrictEqual(parseAdaptiveCardExpression(' employee.name '), { supported: true, root: 'employee', members: ['name'] });
-    assert.strictEqual(parseAdaptiveCardExpression('iif(a, b, c)').supported, false);
-    assert.strictEqual(parseAdaptiveCardExpression('a["b"]').supported, false);
-    assert.strictEqual(parseAdaptiveCardExpression('').supported, false);
+  test('expression parsing is delegated to the templating-language parser', () => {
+    assert.strictEqual(parseExpression('employeeName').supported, true);
+    assert.strictEqual(parseExpression(' employee.name ').supported, true);
+    assert.strictEqual(parseExpression("employee['name']").supported, true);
+    assert.strictEqual(parseExpression('iif(a, b, c)').supported, true, 'function calls are part of the language');
+    assert.strictEqual(parseExpression('a | upper').supported, false, 'filters are not');
+    assert.strictEqual(parseExpression('').supported, false);
   });
 });

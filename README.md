@@ -87,30 +87,94 @@ problem first.
 ### 3. Data binding validation
 
 Adaptive Card templating expressions are extracted from **any** string value
-(`TextBlock.text`, `ariaLabel`, `Fact.value`, ...) and validated against the
-properties exposed by the `data` getter of the associated TypeScript file:
+(`TextBlock.text`, `ariaLabel`, a `Fact.value`, an action `url`, an element's
+`$when` / `isVisible`, ...) and validated against the shape exposed by the
+`data` getter of the associated TypeScript file.
 
-- Simple bindings: `${employeeName}`
-- Nested bindings: `${employee.name}`, `${employee.address.city}`
-- Multiple bindings in one string
-- Bindings deep inside nested card elements
-
-**Supported expression syntax** (statically analyzable):
+**How data flows from `quickView.ts` to the template**
 
 ```
-${property}
-${property.nestedMember}
-${property.nestedMember.deeperMember}
+quickView.ts  get data(): IQuickViewData { return { ... } }
+                     │  (TypeScript type checker)
+                     ▼
+              DataShape  (object / array / union tree)
+                     │
+quickview.json  "${employee.department.name}"  ──►  resolver  ──►  diagnostic
 ```
 
-Anything else — function calls (`${iif(...)}`), indexing (`${items[0].name}`,
-`${employee['name']}`), filters (`${name | upper}`), arithmetic, ternaries —
-is **skipped** rather than guessed at, so there are no false positives.
+The binding check is **off by default**; enable it with
+`spfxQuickViewValidator.enableDataBindingCheck` (it needs an associated
+TypeScript file — see *File association*).
 
-Nested members are resolved through the *declared return type* of the `data`
-getter (e.g. `IQuickViewData`), so `${employee.name}` is validated against
-`IQuickViewData['employee']['name']` and is **not** mistaken for a top-level
-data property.
+#### Supported expression syntax
+
+Everything the Adaptive Cards templating engine evaluates is parsed:
+
+| Template | Validated against |
+| --- | --- |
+| `${employeeName}` | root data property |
+| `${employee.department.name}` | nested object path, segment by segment |
+| `${$root.eAuditUrl}` | the root `data` object — *not* a property named `$root` |
+| `${tasks[0].title}` | the element type of the `tasks` array |
+| `${tasks[$index].title}` | the element type; `$index` is a reserved variable |
+| `${employee['name']}` | string-literal member access |
+| `${formatDateTime(awaitingStepDueDate, 'MM/dd')}` | every argument is a data reference; the function name and `'MM/dd'` are not |
+| `${x > 1 ? 'late' : 'ok'}` | `x` (operators and literals are not data) |
+| `${a && b \|\| !c}` | `a`, `b`, `c` |
+| `"${employeeName} — ${employeeEmail}"` | each expression independently |
+
+#### Iteration, `$data` and `$root`
+
+An element that carries `"$data": "${tasks}"` repeats once per item. Bindings
+**inside** that element are resolved against the array element type first, and
+the lookup walks the scope chain outwards to enclosing iterations and finally
+to the root data object:
+
+```jsonc
+{
+  "type": "Container",
+  "$data": "${tasks}",                    // read at the enclosing scope
+  "items": [
+    { "text": "${title}" },               // the task item
+    { "text": "${$data.completed}" },     // same thing, explicit
+    { "text": "${employeeName}" },        // found on the root via the chain
+    { "text": "${$root.eAuditUrl}" }      // always the root data object
+  ]
+}
+```
+
+Nested repetitions stack: inside `"$data": "${subtasks}"` the current item is
+the subtask, the enclosing item is the task, and `$root` is still the root.
+`${$index}` is recognized as a reserved number, never a data property.
+
+#### How missing properties are reported
+
+Each diagnostic underlines **only the failing segment** and names the object it
+was searched on:
+
+```
+Property 'department' does not exist on 'employee.address'.
+Property 'eAuditUrl' does not exist in the root Quick View data.
+Property 'teammateName' does not exist in the current iteration item or the root Quick View data.
+```
+
+Function arguments, comparison operands, conditional branches and array
+indexes are validated too, so `${formatDateTime(awaitingStepDueDate, 'MM/dd')}`
+reports `awaitingStepDueDate` when the iteration item has no such property.
+
+#### TypeScript type resolution
+
+Nested members are resolved through the **declared return type** of the `data`
+getter (`IQuickViewData`) *and* its return literals, so `${employee.name}` is
+validated against `IQuickViewData['employee']` and is never mistaken for a
+top-level data property. Interfaces, type aliases, inheritance, imported types,
+array/tuple element types, optional properties, unions and string index
+signatures are all understood — see section 4.
+
+Anything that cannot be established reliably (an `any`/`unknown` value such as
+an HTTP response, a computed object, a property reached through an unresolved
+type) is classified as **unverifiable** and produces **no** diagnostic, so a
+binding that may be perfectly correct at runtime is never reported.
 
 ### 4. `data` getter analysis (TypeScript compiler API)
 
@@ -137,9 +201,17 @@ public get data() {
 - Getters with **multiple return paths** are unioned.
 - **Imported interfaces**, type aliases, `extends` chains and inherited
   members resolve when the imports are resolvable.
+- The result is modelled as a **shape tree** — objects with nested property
+  types, arrays with their element type, unions, and string index signatures
+  (`{ [key: string]: T }` accepts arbitrary keys).
 - **Spreads / computed properties / untyped (`any`) values** make the result
   *partial* or *unresolvable* — in those cases missing bindings are downgraded
-  to warnings or skipped entirely instead of reported as errors.
+  to warnings or skipped entirely instead of reported as errors. Members
+  contributed by a spread are still resolved through the checker when its type
+  is known.
+- The root shape **merges the declared return type with the returned
+  literals**, so a property that exists at runtime is never reported as
+  missing just because it is absent from the interface.
 
 ### 5. Element ID ↔ TypeScript property rule (project convention)
 
@@ -183,12 +255,12 @@ uses a different file name, add it to the setting — e.g.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.1.9.vsix` from the
+Download `spfx-quick-view-validator-1.2.0.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.1.9.vsix
+code --install-extension spfx-quick-view-validator-1.2.0.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -332,8 +404,18 @@ Result:
   `any`/untyped returns and unresolvable variables make the analysis *partial*
   or *unknown*. Missing bindings are then downgraded to warnings (partial) or
   skipped (unknown) — never reported as definite errors.
-- **Complex expressions.** Only `${path.to.property}` is analyzed. Function
-  calls, indexing, filters, ternaries and arithmetic are ignored on purpose.
+- **Unsupported expression syntax.** The templating language supported by the
+  engine is parsed (see section 3). Anything outside it — filters
+  (`${name | upper}`), unrecognized operators such as `~`, or an expression
+  whose *data type* depends on a call result (`${first(items).owner.name}`) —
+  is skipped rather than guessed at. Nested member access on a call result is
+  never assumed to be a data path.
+- **Dynamic values.** Values typed `any` / `unknown`, computed properties and
+  `JSON.parse` results are *unverifiable*: bindings into them are not checked
+  and never reported as missing.
+- **Array indexes.** `${tasks[0].title}` and `${tasks[$index].title}` validate
+  against the element type. Tuple bounds and out-of-range numeric indexes are
+  not checked — a bad index is not reported.
 - **Visibility conditions.** Only single-property expressions (`${flag}`,
   `${path > 5}`) are analyzed for mutual exclusivity. Logical connectives
   (`&&`, `||`), arithmetic and function calls cannot be proven exclusive, so
@@ -356,6 +438,26 @@ Result:
 - **Element-ID rule is a convention.** Adaptive Cards does not require element
   IDs to exist in TypeScript. Keep the rule at warning severity or disable it
   for projects that do not follow the convention.
+
+## Troubleshooting binding validation
+
+1. **No binding diagnostics at all?** `spfxQuickViewValidator.enableDataBindingCheck`
+   is **off by default**. Turn it on, then reload the JSON.
+2. **A warning instead of an error?** The `data` getter could only be
+   **partially** resolved (a spread, a computed key, an untyped value), so a
+   missing binding is downgraded to a warning. Declare a return type
+   (`get data(): IQuickViewData`) to get full, error-level validation.
+3. **The `unresolvedDataShape` warning?** The getter's return type could not
+   be resolved (`any`, a computed object). Binding checks are skipped for the
+   file. Add an explicit return type or an interface.
+4. **The `noDataGetter` warning?** The associated TypeScript file has no
+   `data` getter. Check the file pairing.
+5. **`${$root.x}` is flagged?** It should not be — `$root` is a reserved
+   context variable. Make sure you are on 1.2.0 or later, where `$root`,
+   `$data`, `$index` and iteration scopes are understood.
+6. **The TypeScript file is missing or ambiguous?** Run **Select Associated
+   TypeScript File** and pick the correct file; the choice is remembered per
+   workspace.
 
 ## Why am I getting no diagnostics?
 

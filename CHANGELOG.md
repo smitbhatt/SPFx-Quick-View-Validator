@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.2.0
+
+- **Complete, context-aware Adaptive Card templating validation.** Data
+  bindings are now resolved with a real parser for the Adaptive Cards
+  templating expression language instead of a plain dotted-path check, so far
+  more of a real Quick View template is validated — while remaining
+  conservative about anything that cannot be proven.
+  - **`$root` references** (`${$root.eAuditUrl}`, `${$root.employee.department.name}`)
+    resolve against the root `data` object. They are no longer mistaken for a
+    data property named `$root`.
+  - **`$data` iteration scopes:** properties inside an element with
+    `"$data": "${tasks}"` are validated against the *array element type*, and
+    the scope chain reaches enclosing iterations and the root. Nested
+    repetitions stack correctly, and `$root` inside a repetition still refers
+    to the root data.
+  - **`$index` and array indexing:** `${tasks[0].title}`,
+    `${tasks[$index].title}` and `${employee['name']}` are validated against
+    the element type, including nested arrays and tuples.
+  - **Function calls:** arguments are validated as data references
+    (`${formatDateTime(awaitingStepDueDate, 'MM/dd')}` checks
+    `awaitingStepDueDate`), while the function name, string literals and
+    numeric constants are left alone.
+  - **Operators, comparisons and conditionals** (`${a && b}`, `${x > 1 ? a : b}`)
+    are parsed, not grepped, so only real data references are checked.
+- **Precise diagnostics:** a missing property now underlines just the failing
+  segment (`manager` in `${employee.manager.email}`) instead of the whole
+  `${...}` expression, and the message names the parent object it was searched
+  on. Root-level misses name the root data context; misses inside a repetition
+  name the iteration item and the root.
+- **Better type resolution:** the `data` shape is derived with the TypeScript
+  checker as an object/array/union tree, including index signatures
+  (`{ [key: string]: T }` accepts arbitrary keys), optional properties and
+  unions. The root shape merges the annotated `data` return type with the
+  return literals, so a property that renders at runtime is never reported.
+- **Fewer false positives:** values typed `any`/`unknown` (API responses,
+  computed objects, dynamic payloads) are classified as *unverifiable* and
+  skipped rather than reported as missing.
+- Unsupported syntax (filters such as `${name | upper}`) is still skipped
+  silently instead of being guessed at.
+
 ## 1.1.9
 
 - **New quick fix: "Fix duplicate ID".** Every duplicate-ID diagnostic on a

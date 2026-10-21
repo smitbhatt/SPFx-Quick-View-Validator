@@ -28,7 +28,7 @@ both pass before committing.
 
 ## Tests
 
-- Plain **mocha** tests in `test/` (TDD UI, 125 scenarios) run in Node —
+- Plain **mocha** tests in `test/` (TDD UI, 173 scenarios) run in Node —
   no `@vscode/test-electron` needed, because `src/core/` and `src/analyzer/`
   never import `vscode`. The whole pipeline, including unsaved-content
   handling, is covered by these tests.
@@ -48,14 +48,22 @@ both pass before committing.
 src/
   extension.ts                 activation, commands, events, caching, debounce
   config.ts                    VS Code settings → typed configuration
-  analyzer/analyzer.ts         TypeScript compiler API analysis (data getter,
-                               declared properties, nested type resolution)
+  analyzer/
+    analyzer.ts                TypeScript compiler API analysis (data getter,
+                               declared properties, nested type resolution,
+                               data shape tree)
+    shape.ts                   ts.Type → DataShape (object/array/union) builder
   core/
     types.ts                   VS Code-independent models
     positions.ts               offset ↔ line/column helpers
     jsonDocument.ts            jsonc-parser walk: IDs, containers, $when /
-                               isVisible, ${...} extraction
-    bindings.ts                expression extraction and parsing
+                               isVisible, ${...} extraction + $data scopes
+    bindings.ts                ${...} expression extraction
+    expressions.ts             tokenizer + parser for the Adaptive Cards
+                               templating expression language ($root, $data,
+                               $index, calls, operators, indexing)
+    bindingResolver.ts         context-aware resolution of expressions against
+                               the data shape (scope chain, iteration items)
     conditions.ts              visibility condition parsing ($when / isVisible)
     exclusivity.ts             pairwise mutual-exclusivity analysis
     duplicateIds.ts            duplicate grouping

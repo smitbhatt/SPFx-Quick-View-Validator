@@ -1,0 +1,46 @@
+{
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "id": "employeeName",
+      "text": "${employeeName}"
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "id": "workdayInboxUrl",
+          "title": "My inbox",
+          "url": "${$root.workdayInboxUrl}"
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "id": "workdayPDRData",
+      "$data": "${workdayPDRData.dueOrOverdue}",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "${teammateName}"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${formatDateTime(awaitingStepDueDate, 'MM/dd')}"
+        },
+        {
+          "type": "TextBlock",
+          "$when": "${dayRemaining > 1}",
+          "text": "Overdue"
+        },
+        {
+          "type": "TextBlock",
+          "$when": "${dayRemaining < 2}",
+          "text": "Not overdue"
+        }
+      ]
+    }
+  ]
+}

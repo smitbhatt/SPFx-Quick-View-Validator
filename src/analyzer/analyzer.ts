@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as ts from 'typescript';
 import { computeLineStarts, positionAt } from '../core/positions';
+import { createShapeBuilder, DataShape, UNRESOLVED_SHAPE } from './shape';
 
 /**
  * Static analysis of a Quick View TypeScript implementation using the
@@ -14,6 +15,11 @@ import { computeLineStarts, positionAt } from '../core/positions';
  * All resolution is deliberately conservative: when a value cannot be
  * resolved statically the result is reported as `partial`/`none`/`unknown`
  * so callers can skip checks instead of producing false positives.
+ *
+ * Besides the flat `dataPropertyNames` set (kept for compatibility and for the
+ * "partially resolved" verdict), the analyzer exposes a `rootShape`: a
+ * `DataShape` tree (objects, arrays, unions, index signatures) built with the
+ * type checker, which drives the context-aware binding resolver.
  */
 
 export type Resolution = 'full' | 'partial' | 'none';
@@ -52,6 +58,12 @@ export interface TsAnalysisResult {
    * callers must then skip the check.
    */
   resolveDataPath(members: string[]): MemberCheckResult;
+  /**
+   * Statically-derived shape of the root data object (arrays, nested objects,
+   * unions, index signatures). `undefined` when nothing could be resolved.
+   * Used by the context-aware binding resolver.
+   */
+  rootShape?: DataShape;
   dispose(): void;
 }
 
@@ -297,6 +309,68 @@ export function analyzeQuickViewTypeScript(fileName: string, content: string): T
   // ------------------------------------------------- nested member resolving
   const resolveLocation: ts.Node = dataGetter ?? sourceFile;
 
+  const shapeBuilder = createShapeBuilder(checker, resolveLocation);
+  const proposedRootShape: DataShape = (() => {
+    if (!dataGetter) {
+      return UNRESOLVED_SHAPE;
+    }
+
+    // Shapes of every statically resolvable return expression.
+    const returnShapes: DataShape[] = [];
+    const collect = (node: ts.Node): void => {
+      if (ts.isReturnStatement(node) && node.expression) {
+        returnShapes.push(shapeBuilder.shapeOf(checker.getTypeAtLocation(node.expression)));
+      }
+      ts.forEachChild(node, collect);
+    };
+    if (dataGetter.body) {
+      collect(dataGetter.body);
+    }
+
+    const annotatedShape = annotatedType ? shapeBuilder.shapeOf(annotatedType) : undefined;
+
+    // Partial analysis keeps the syntactically collected top-level names so a
+    // binding can still be classified as "not returned at all".
+    if (!annotatedShape && (hasDynamicBody || hasUnresolvedReturn)) {
+      const names = new Set(dataPropertyNames);
+      for (const shape of returnShapes) {
+        if (shape.kind === 'object') {
+          for (const name of shape.properties.keys()) {
+            names.add(name);
+          }
+        }
+      }
+      return names.size > 0
+        ? { kind: 'object', properties: new Map([...names].map((name) => [name, UNRESOLVED_SHAPE])) }
+        : UNRESOLVED_SHAPE;
+    }
+
+    // The declared contract is authoritative for types, but a return literal
+    // may add keys the interface does not declare (and the old behavior
+    // accepted them). Merge both so nothing that renders at runtime is missed.
+    const base = annotatedShape ?? (returnShapes.length === 1 ? returnShapes[0] : { kind: 'union' as const, members: returnShapes });
+    if (base.kind !== 'object') {
+      return base;
+    }
+    const properties = new Map(base.properties);
+    for (const shape of returnShapes) {
+      if (shape.kind !== 'object') {
+        continue;
+      }
+      for (const [name, value] of shape.properties) {
+        if (!properties.has(name)) {
+          properties.set(name, value);
+        }
+      }
+    }
+    if (properties.size === 0 && !base.indexSignature) {
+      return UNRESOLVED_SHAPE;
+    }
+    return base.indexSignature
+      ? { kind: 'object', properties, indexSignature: base.indexSignature }
+      : { kind: 'object', properties };
+  })();
+
   const memberType = (types: ts.Type[], member: string): { types: ts.Type[]; missing: boolean; unknown: boolean } => {
     const next: ts.Type[] = [];
     let missing = false;
@@ -358,6 +432,7 @@ export function analyzeQuickViewTypeScript(fileName: string, content: string): T
     declaredPropertyNames,
     declaredPropertyResolution,
     resolveDataPath,
+    rootShape: proposedRootShape,
     dispose: () => {
       dataPropertyNames.clear();
       declaredPropertyNames.clear();

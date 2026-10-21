@@ -1,0 +1,86 @@
+{
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "id": "employeeName",
+      "text": "${employeeName}",
+      "wrap": true
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "id": "eAuditUrl",
+          "title": "Open audits",
+          "url": "${$root.eAuditUrl}"
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "id": "employee",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "Department: ${employee.department.name}"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${employee.profileUrl}"
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "id": "tasks",
+      "$data": "${tasks}",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "${$index}. ${title}"
+        },
+        {
+          "type": "TextBlock",
+          "$when": "${completed}",
+          "text": "Done: ${title}"
+        },
+        {
+          "type": "Container",
+          "$data": "${subtasks}",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "${label} (${title})"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "id": "workdayPDRData",
+      "$data": "${workdayPDRData.dueOrOverdue}",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "${teammateName}"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${formatDateTime(awaitingStepDueDate, 'MM/dd')}"
+        },
+        {
+          "type": "TextBlock",
+          "$when": "${dayRemaining > 1}",
+          "text": "Overdue"
+        },
+        {
+          "type": "TextBlock",
+          "text": "${$root.theme.accentColor}"
+        }
+      ]
+    }
+  ]
+}

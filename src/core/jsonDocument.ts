@@ -38,6 +38,12 @@ export interface BindingReference {
   /** Offsets of the full `${...}` span inside the document. */
   offset: number;
   length: number;
+  /**
+   * Enclosing `$data` repetition frames, outermost first. Each entry is the
+   * raw `$data` value of an ancestor element (e.g. `${tasks}`). Empty when the
+   * binding sits outside every repetition.
+   */
+  scopes: string[];
 }
 
 export interface ParsedQuickViewJson {
@@ -73,7 +79,7 @@ export function parseQuickViewJson(text: string, options: JsonParseOptions): Par
   const ids: IdReference[] = [];
   const bindings: BindingReference[] = [];
   if (root) {
-    walk(root, '$', '$', text, ids, bindings);
+    walk(root, '$', '$', text, ids, bindings, []);
   }
 
   return { root, syntaxErrors, ids, bindings };
@@ -89,7 +95,8 @@ function walk(
   containerPath: string,
   text: string,
   ids: IdReference[],
-  bindings: BindingReference[]
+  bindings: BindingReference[],
+  scopes: string[]
 ): void {
   switch (node.type) {
     case 'object': {
@@ -98,6 +105,29 @@ function walk(
       let idRef: IdReference | undefined;
       let whenNode: Node | undefined;
       let isVisibleNode: Node | undefined;
+      let dataNode: Node | undefined;
+      for (const propertyNode of node.children ?? []) {
+        if (propertyNode.type !== 'property') {
+          continue;
+        }
+        const pair = propertyNode.children ?? [];
+        const keyNode = pair[0];
+        const valueNode = pair[1];
+        if (!keyNode || !valueNode) {
+          continue;
+        }
+        const key = typeof keyNode.value === 'string' ? keyNode.value : String(keyNode.value);
+        if (key === '$data') {
+          dataNode = valueNode;
+        }
+      }
+
+      // An element carrying `$data` repeats once per collection item: its own
+      // subtree (including `$when` / `isVisible` on the same object) is
+      // evaluated in the new iteration scope. The `$data` value itself is
+      // evaluated in the enclosing scope.
+      const childScopes = dataNode ? [...scopes, rawDataExpression(dataNode)] : scopes;
+
       for (const propertyNode of node.children ?? []) {
         if (propertyNode.type !== 'property') {
           continue;
@@ -129,8 +159,9 @@ function walk(
           isVisibleNode = valueNode;
         }
 
+        const nestedScopes = key === '$data' ? scopes : childScopes;
         // Children of this object are siblings within it.
-        walk(valueNode, valuePath, path, text, ids, bindings);
+        walk(valueNode, valuePath, path, text, ids, bindings, nestedScopes);
       }
       // Visibility properties may appear before or after `id` — attach them
       // once the whole element object has been seen.
@@ -142,7 +173,7 @@ function walk(
     }
     case 'array': {
       const children = node.children ?? [];
-      children.forEach((child, index) => walk(child, `${path}[${index}]`, path, text, ids, bindings));
+      children.forEach((child, index) => walk(child, `${path}[${index}]`, path, text, ids, bindings, scopes));
       break;
     }
     case 'string': {
@@ -154,7 +185,8 @@ function walk(
           expression: match.expression,
           path,
           offset: node.offset + 1 + match.start,
-          length: match.length
+          length: match.length,
+          scopes: [...scopes]
         });
       }
       break;
@@ -162,4 +194,17 @@ function walk(
     default:
       break;
   }
+}
+
+/**
+ * Normalizes a raw `$data` value node to expression text. The engine accepts
+ * both `"${tasks}"` and the bare `"tasks"` form.
+ */
+function rawDataExpression(node: Node): string {
+  if (node.type !== 'string') {
+    return '';
+  }
+  const value = String(node.value).trim();
+  const wrapped = /^\$\{([\s\S]*)\}$/.exec(value);
+  return wrapped ? wrapped[1].trim() : value;
 }

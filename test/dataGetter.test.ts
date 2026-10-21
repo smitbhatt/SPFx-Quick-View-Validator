@@ -105,11 +105,12 @@ suite('Quick View TypeScript analysis (data getter)', () => {
     assert.deepStrictEqual(anyAnalysis.resolveDataPath(['anything']), { status: 'unknown' });
   });
 
-  test('validating a broken binding points at the expression with a useful message', () => {
+  test('validating a broken binding points at the failing segment with a useful message', () => {
     const analysis = analyzeFixture(...BASIC_TS);
     const json = `{ "text": "\${employeeName} \${employee.nope}" }`;
     const diagnostics = validate(json, { tsAnalysis: analysis, association: spfxBasicAssociation() });
     const missing = firstWithCode(diagnostics, DiagnosticCodes.missingDataBinding);
-    assert.strictEqual(json.substring(missing.range.offset, missing.range.offset + missing.range.length), '${employee.nope}');
+    assert.strictEqual(json.substring(missing.range.offset, missing.range.offset + missing.range.length), 'nope');
+    assert.ok(missing.message.includes('employee'), missing.message);
   });
 });

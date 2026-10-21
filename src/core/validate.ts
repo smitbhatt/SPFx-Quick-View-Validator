@@ -1,6 +1,6 @@
 import { TsAnalysisResult } from '../analyzer/analyzer';
 import { AssociationStatus } from './association';
-import { parseAdaptiveCardExpression } from './bindings';
+import { BindingResolver, MissingSegment } from './bindingResolver';
 import { readOccurrenceVisibility } from './conditions';
 import { findDuplicateIds } from './duplicateIds';
 import { classifyDuplicateGroup, GroupClassification } from './exclusivity';
@@ -36,6 +36,48 @@ function baseName(p: string | undefined): string {
   }
   const parts = p.split(/[\\/]/);
   return parts[parts.length - 1] || p;
+}
+
+/**
+ * Narrows a `${...}` span down to the exact missing property segment so the
+ * editor underlines only the offending part of the expression.
+ */
+function missingRange(
+  bindingOffset: number,
+  bindingLength: number,
+  rawExpression: string,
+  missing: MissingSegment
+): { offset: number; length: number } {
+  // Leading whitespace inside `${ ... }` shifts the expression offsets.
+  const leading = rawExpression.length - rawExpression.trimStart().length;
+  const offset = bindingOffset + 2 + leading + missing.offset;
+  const length = Math.max(missing.length, 1);
+  if (offset < bindingOffset || offset + length > bindingOffset + bindingLength) {
+    return { offset: bindingOffset, length: bindingLength };
+  }
+  return { offset, length };
+}
+
+/** Builds the human-readable diagnostic message for a missing property. */
+function missingMessage(
+  expression: string,
+  missing: MissingSegment,
+  tsName: string,
+  jsonPath: string,
+  partialNote: string
+): string {
+  if (missing.atRoot && missing.segmentIndex === 1) {
+    return (
+      `Data binding "\${${expression}}" references "${missing.name}", which does not exist in ` +
+      `${missing.searchedOn} returned by the "data" getter in "${tsName}" (JSON path ${jsonPath}).`
+    );
+  }
+  const prefix = missing.resolvedPath.join('.');
+  return (
+    `Data binding "\${${expression}}" references "${prefix}.${missing.name}" (segment "${missing.name}"), but ` +
+    `"${missing.name}" does not exist on "${prefix}" according to the declared data type in "${tsName}" ` +
+    `(JSON path ${jsonPath}).${partialNote}`
+  );
 }
 
 /**
@@ -212,51 +254,60 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
           ? ' (Note: the data getter could only be partially resolved statically, so this is reported as a warning.)'
           : '';
 
-      for (const binding of parsed.bindings) {
-        const expression = parseAdaptiveCardExpression(binding.expression);
-        if (!expression.supported || !expression.root) {
-          continue; // statically unresolvable: skip instead of guessing
-        }
+      const openTsData = input.association?.tsPath
+        ? {
+            kind: 'openTypeScript' as const,
+            tsPath: input.association.tsPath,
+            line: tsAnalysis.dataGetterPosition?.line ?? 1,
+            column: tsAnalysis.dataGetterPosition?.column ?? 1
+          }
+        : undefined;
 
-        const openTsData = input.association?.tsPath
-          ? {
-              kind: 'openTypeScript' as const,
-              tsPath: input.association.tsPath,
-              line: tsAnalysis.dataGetterPosition?.line ?? 1,
-              column: tsAnalysis.dataGetterPosition?.column ?? 1
-            }
-          : undefined;
-
-        if (!tsAnalysis.dataPropertyNames.has(expression.root)) {
-          diagnostics.push({
-            severity: bindingSeverity,
-            message:
-              `Data binding "\${${binding.expression.trim()}}" references "${expression.root}", which is not ` +
-              `returned by the "data" getter in "${tsName}" (JSON path ${binding.path}).${partialNote}`,
-            code: DiagnosticCodes.missingDataBinding,
-            range: { offset: binding.offset, length: binding.length },
-            data: openTsData
+      const rootShape = tsAnalysis.rootShape;
+      const seen = new Set<string>();
+      // One resolver per distinct iteration-scope chain: scope resolution
+      // (and the `$data` parse) is reused across all bindings in the same
+      // repetition instead of being repeated per binding.
+      const resolvers = new Map<string, BindingResolver>();
+      const resolverFor = (scopes: string[]): BindingResolver => {
+        const key = scopes.join('\u0000');
+        let resolver = resolvers.get(key);
+        if (!resolver) {
+          resolver = new BindingResolver({
+            rootShape: rootShape as NonNullable<typeof rootShape>,
+            scopes: scopes.map((expression) => ({ expression }))
           });
+          resolvers.set(key, resolver);
+        }
+        return resolver;
+      };
+
+      for (const binding of parsed.bindings) {
+        if (!rootShape) {
+          break; // no resolvable root shape: skip binding checks entirely
+        }
+        const resolution = resolverFor(binding.scopes).resolve(binding.expression);
+        if (resolution.status !== 'missing' || !resolution.missing) {
+          // `valid` / `unverifiable` / `unsupported`: never guess.
           continue;
         }
 
-        if (expression.members.length > 0) {
-          // resolveDataPath works from the data root, so include the root member.
-          const result = tsAnalysis.resolveDataPath([expression.root, ...expression.members]);
-          if (result.status === 'missing') {
-            diagnostics.push({
-              severity: 'error',
-              message:
-                `Data binding "\${${binding.expression.trim()}}" references "${expression.members.join('.')}", but ` +
-                `"${result.missingPath.join('.')}" does not exist on "${expression.root}" according to the declared ` +
-                `data type in "${tsName}" (JSON path ${binding.path}).`,
-              code: DiagnosticCodes.missingDataBinding,
-              range: { offset: binding.offset, length: binding.length },
-              data: openTsData
-            });
-          }
-          // `unknown` → the type could not be resolved; skip without reporting.
+        const missing = resolution.missing;
+        const display = binding.expression.trim();
+        const range = missingRange(binding.offset, binding.length, binding.expression, missing);
+        const key = `${range.offset}:${range.length}`;
+        if (seen.has(key)) {
+          continue; // avoid duplicate diagnostics for the same property
         }
+        seen.add(key);
+
+        diagnostics.push({
+          severity: missing.segmentIndex === 1 && missing.atRoot ? bindingSeverity : 'error',
+          message: missingMessage(display, missing, tsName, binding.path, partialNote),
+          code: DiagnosticCodes.missingDataBinding,
+          range,
+          data: openTsData
+        });
       }
     }
   }
