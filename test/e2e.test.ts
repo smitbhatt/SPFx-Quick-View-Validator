@@ -56,11 +56,6 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
     assert.strictEqual(missingBinding.severity, 'error');
     assert.ok(missingBinding.message.includes('notProvided'));
 
-    const missingId = byCode(diagnostics, DiagnosticCodes.missingIdProperty);
-    assert.strictEqual(missingId.length, 1);
-    assert.strictEqual(missingId[0].severity, 'warning');
-    assert.ok(missingId[0].message.includes('mysteryId'));
-
     // Deterministic ordering: by offset.
     const offsets = diagnostics.map((d) => d.range.offset);
     assert.deepStrictEqual(offsets, [...offsets].sort((a, b) => a - b));
@@ -107,11 +102,11 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
     assert.ok(warning.message.includes('ManagerQuickView.ts'));
   });
 
-  test('when both TypeScript checks are disabled, association problems stay silent', () => {
+  test('when binding checks are disabled, association problems stay silent', () => {
     const json = `{ "text": "\${whatever}" }`;
     const diagnostics = validate(json, {
       association: { status: 'none' },
-      config: config({ enableDataBindingCheck: false, enableIdPropertyCheck: false })
+      config: config({ enableDataBindingCheck: false })
     });
     assert.deepStrictEqual(codes(diagnostics), []);
   });
@@ -134,7 +129,6 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
     const all = validate(noisy, { tsAnalysis: basicAnalysis, association });
     assert.strictEqual(byCode(all, DiagnosticCodes.duplicateId).length, 2);
     assert.strictEqual(byCode(all, DiagnosticCodes.missingDataBinding).length, 1);
-    assert.strictEqual(byCode(all, DiagnosticCodes.missingIdProperty).length, 2, 'one warning per duplicate occurrence');
 
     const noDuplicates = validate(noisy, {
       tsAnalysis: basicAnalysis,
@@ -149,13 +143,6 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
       config: config({ enableDataBindingCheck: false })
     });
     assert.ok(!codes(noBindings).includes(DiagnosticCodes.missingDataBinding));
-
-    const noIdRule = validate(noisy, {
-      tsAnalysis: basicAnalysis,
-      association,
-      config: config({ enableIdPropertyCheck: false })
-    });
-    assert.ok(!codes(noIdRule).includes(DiagnosticCodes.missingIdProperty));
   });
 
   /**
@@ -168,22 +155,18 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
     const props = pkg.contributes.configuration.properties as Record<string, { default: unknown }>;
     // The data-binding check must be on out of the box.
     assert.strictEqual(props['spfxQuickViewValidator.enableDataBindingCheck'].default, true);
-    // ID/property pairing stays opt-in (project-specific convention).
-    assert.strictEqual(props['spfxQuickViewValidator.enableIdPropertyCheck'].default, false);
-    // And the JSON file patterns cover <Something>Template.json.
+    // The JSON file patterns cover <Something>Template.json.
     assert.deepStrictEqual(props['spfxQuickViewValidator.jsonFilePatterns'].default, [
       'quickview*.json',
       '*Template.json',
     ]);
   });
 
-  test('default configuration has strict JSON and all checks enabled', () => {
+  test('default configuration has strict JSON and the binding check enabled', () => {
     assert.strictEqual(DEFAULT_CONFIG.allowJsonComments, false);
     assert.strictEqual(DEFAULT_CONFIG.allowTrailingCommas, false);
     assert.strictEqual(DEFAULT_CONFIG.enableDuplicateIdCheck, true);
     assert.strictEqual(DEFAULT_CONFIG.enableDataBindingCheck, true);
-    assert.strictEqual(DEFAULT_CONFIG.enableIdPropertyCheck, true);
-    assert.strictEqual(DEFAULT_CONFIG.idPropertySeverity, 'warning');
     assert.ok(DEFAULT_CONFIG.validationDebounceMs >= 0);
     assert.deepStrictEqual(DEFAULT_CONFIG.jsonFilePatterns, ['quickview*.json', '*Template.json']);
     assert.strictEqual(DEFAULT_CONFIG.requireManualSelection, false);

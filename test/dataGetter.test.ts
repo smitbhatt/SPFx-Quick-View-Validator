@@ -57,11 +57,9 @@ suite('Quick View TypeScript analysis (data getter)', () => {
 
   test('imported interfaces, extends chains and inherited members resolve', () => {
     const analysis = analyzeFixture('inheritedImport', 'QuickView.ts');
+    // IBaseData is imported and extended: its members must be known too.
     assert.deepStrictEqual([...analysis.dataPropertyNames].sort(), ['extra', 'shared']);
     assert.strictEqual(analysis.dataResolution, 'full');
-    // IBaseData is imported and extended: its members must be known too.
-    assert.ok(analysis.declaredPropertyNames.has('shared'));
-    assert.ok(analysis.declaredPropertyNames.has('extra'));
   });
 
   test('13. unsaved TypeScript content is analyzed instead of the content on disk', () => {

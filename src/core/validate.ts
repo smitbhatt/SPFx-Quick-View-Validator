@@ -190,7 +190,7 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
     }
   }
 
-  const needsTypeScript = config.enableDataBindingCheck || config.enableIdPropertyCheck;
+  const needsTypeScript = config.enableDataBindingCheck;
 
   // ------------------------------------------- association missing / failed
   if (needsTypeScript && input.association && input.association.status !== 'resolved') {
@@ -203,7 +203,7 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
     diagnostics.push({
       severity: 'warning',
       message:
-        `${reason} Data-binding and element-ID property checks are skipped. ` +
+        `${reason} Data-binding validation is skipped. ` +
         `Run "SPFx Quick View Validator: Select Associated TypeScript File" to choose the file manually.`,
       code: DiagnosticCodes.missingTypeScript,
       range: { offset: 0, length: Math.min(jsonText.length, 1) }
@@ -313,31 +313,9 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
   }
 
   // ----------------------------------------- E. Element ID ↔ TS property
-  if (config.enableIdPropertyCheck) {
-    if (tsAnalysis && tsAnalysis.declaredPropertyResolution !== 'none') {
-      for (const id of parsed.ids) {
-        if (!tsAnalysis.declaredPropertyNames.has(id.value)) {
-          diagnostics.push({
-            severity: config.idPropertySeverity,
-            message:
-              `Element ID "${id.value}" has no matching property declaration in "${tsName}" ` +
-              `(JSON path ${id.path}). This is a project-specific convention; disable it with the ` +
-              `"spfxQuickViewValidator.enableIdPropertyCheck" setting.`,
-            code: DiagnosticCodes.missingIdProperty,
-            range: { offset: id.offset, length: id.length },
-            data: input.association?.tsPath
-              ? {
-                  kind: 'openTypeScript',
-                  tsPath: input.association.tsPath,
-                  line: tsAnalysis.dataGetterPosition?.line ?? 1,
-                  column: tsAnalysis.dataGetterPosition?.column ?? 1
-                }
-              : undefined
-          });
-        }
-      }
-    }
-  }
+  // The ID/property convention check was removed in v1.2.4: it enforced a
+  // project-specific convention rather than an Adaptive Card requirement, so
+  // validation covers JSON syntax, duplicate IDs and data bindings only.
 
   diagnostics.sort((a, b) => a.range.offset - b.range.offset || a.code.localeCompare(b.code));
   return diagnostics;

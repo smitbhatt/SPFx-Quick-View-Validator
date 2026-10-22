@@ -15,7 +15,6 @@ finds the associated Quick View TypeScript implementation
 | Duplicate Adaptive Card element IDs (`"id"` at any nesting depth) | Error (Warning when visibility conditions can't be proven exclusive) | `duplicateId` |
 | Malformed JSON | Error | `jsonSyntax` |
 | Data bindings `${...}` not provided by the `data` getter | Error | `missingDataBinding` |
-| Element IDs without a matching TypeScript property (project convention) | Warning (configurable) | `missingIdProperty` |
 | Missing / ambiguous / unreadable associated TypeScript file | Warning | `missingTypeScript` |
 | `data` getter missing in the TypeScript file | Warning | `noDataGetter` |
 | `data` shape not statically resolvable (e.g. returns `any`) | Warning | `unresolvedDataShape` |
@@ -213,18 +212,7 @@ public get data() {
   literals**, so a property that exists at runtime is never reported as
   missing just because it is absent from the interface.
 
-### 5. Element ID ↔ TypeScript property rule (project convention)
-
-Some teams declare one property per element ID so IDs stay in sync with the
-view model. This rule checks every JSON `id` against properties declared in
-top-level **interfaces, type aliases and classes** (including resolvable
-imported and inherited ones) of the associated TypeScript file. Function
-parameters and local variables are never counted. The rule is **disabled by
-default** (`spfxQuickViewValidator.enableIdPropertyCheck`); when enabled it
-reports *warnings* and can be turned off per project — it is a convention,
-not an Adaptive Card requirement.
-
-### 6. File association
+### 5. File association
 
 Starting from the active Quick View JSON, the associated TypeScript file is
 resolved deterministically:
@@ -256,12 +244,12 @@ the setting — e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.2.3.vsix` from the
+Download `spfx-quick-view-validator-1.2.4.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.2.3.vsix
+code --install-extension spfx-quick-view-validator-1.2.4.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -350,13 +338,10 @@ to the old ID, update those separately.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. |
-| `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
+| `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. || `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
 | `spfxQuickViewValidator.conditionalDuplicateSeverity` | `off` | Severity for duplicates proven mutually exclusive by their visibility conditions: `off` (not reported), `warning` or `information`. |
 | `spfxQuickViewValidator.numericConditionDomain` | `integer` | Domain for numeric condition comparisons. `integer` proves `${x > 1}` vs `${x < 2}` exclusive (adjacent integer bounds); set `continuous` when a numeric property can be fractional. |
 | `spfxQuickViewValidator.enableDataBindingCheck` | `true` | Validate `${...}` bindings against the data getter. |
-| `spfxQuickViewValidator.enableIdPropertyCheck` | `false` | Check element IDs against TypeScript property declarations. |
-| `spfxQuickViewValidator.idPropertySeverity` | `warning` | `error`, `warning` or `information`. |
 | `spfxQuickViewValidator.validationDebounceMs` | `250` | Debounce while typing (0–5000 ms). |
 | `spfxQuickViewValidator.allowJsonComments` | `false` | Permit `//` and `/* */` in `quickview.json`. |
 | `spfxQuickViewValidator.allowTrailingCommas` | `false` | Permit trailing commas. |
@@ -468,8 +453,8 @@ Result:
    template is named differently, add its name to the setting — that is the most
    common reason a file produces no diagnostics at all.
 2. **Check the feature settings.** `spfxQuickViewValidator.enableDataBindingCheck`
-   is **on by default**; `spfxQuickViewValidator.enableIdPropertyCheck` is
-   **off** — turn that on if you expect ID/property diagnostics.
+   is **on by default** — first make sure it has not been turned off, then reload
+   the JSON.
 3. Run **Show Validation Summary** — it prints the association status
    (`resolved` / `ambiguous` / `not found`), the candidates found, the Quick
    View class, the resolved data properties, and the **Configuration** block:

@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -128,26 +128,6 @@
           "type": "boolean",
           "default": true,
           "description": "Validate Adaptive Card templating expressions such as ${employeeName} against the data getter of the associated Quick View TypeScript file."
-        },
-        "spfxQuickViewValidator.enableIdPropertyCheck": {
-          "type": "boolean",
-          "default": false,
-          "description": "Check whether every element ID in quickview.json has a matching property declaration in the associated TypeScript file. This is a project-specific convention, not a universal Adaptive Card requirement."
-        },
-        "spfxQuickViewValidator.idPropertySeverity": {
-          "type": "string",
-          "enum": [
-            "error",
-            "warning",
-            "information"
-          ],
-          "enumDescriptions": [
-            "Report missing element-ID properties as errors.",
-            "Report missing element-ID properties as warnings (default).",
-            "Report missing element-ID properties as informational hints."
-          ],
-          "default": "warning",
-          "description": "Diagnostic severity used when an element ID has no matching TypeScript property declaration."
         },
         "spfxQuickViewValidator.validationDebounceMs": {
           "type": "number",

@@ -47,10 +47,6 @@ export interface TsAnalysisResult {
   dataResolution: Resolution;
   /** Name of the Quick View class that was analyzed. */
   quickViewClassName?: string;
-  /** Property names declared by top-level interfaces/classes/type aliases (and resolvable named imports). */
-  declaredPropertyNames: Set<string>;
-  /** How reliable `declaredPropertyNames` is. */
-  declaredPropertyResolution: Resolution;
   /**
    * Resolves a binding path from the data root (`employee.name`) against the
    * declared return type of the data getter. The first element is the root
@@ -228,84 +224,6 @@ export function analyzeQuickViewTypeScript(fileName: string, content: string): T
     }
   }
 
-  // -------------------------------------------------- declared properties E
-  const declaredPropertyNames = new Set<string>();
-  let declaredPropertyResolution: Resolution = 'none';
-
-  const addDeclaredType = (type: ts.Type | undefined): boolean => {
-    if (!type || isAnyOrUnknown(type)) {
-      return false;
-    }
-    let added = false;
-    for (const t of splitType(type)) {
-      if (isAnyOrUnknown(t)) {
-        continue;
-      }
-      for (const prop of t.getProperties()) {
-        // Only real properties/fields count: methods, accessors and other
-        // non-data members must not make an element ID look "declared".
-        if ((prop.getFlags() & ts.SymbolFlags.Property) === 0) {
-          continue;
-        }
-        declaredPropertyNames.add(prop.getName());
-        added = true;
-      }
-    }
-    return added;
-  };
-
-  let sawDeclarationCandidate = false;
-
-  for (const statement of sourceFile.statements) {
-    if (ts.isInterfaceDeclaration(statement) || ts.isClassDeclaration(statement)) {
-      sawDeclarationCandidate = true;
-      const nameNode = statement.name;
-      const symbol = nameNode ? checker.getSymbolAtLocation(nameNode) : undefined;
-      if (symbol) {
-        addDeclaredType(checker.getDeclaredTypeOfSymbol(symbol));
-      }
-    } else if (ts.isTypeAliasDeclaration(statement)) {
-      sawDeclarationCandidate = true;
-      addDeclaredType(checker.getTypeFromTypeNode(statement.type));
-    } else if (ts.isImportDeclaration(statement) && statement.importClause) {
-      const importClause = statement.importClause;
-      const collectFromImport = (identifier: ts.Identifier): void => {
-        sawDeclarationCandidate = true;
-        let symbol = checker.getSymbolAtLocation(identifier);
-        if (symbol && symbol.flags & ts.SymbolFlags.Alias) {
-          symbol = checker.getAliasedSymbol(symbol);
-        }
-        if (!symbol) {
-          return;
-        }
-        const isSupportedDeclaration = (symbol.declarations ?? []).some(
-          (d) => ts.isInterfaceDeclaration(d) || ts.isClassDeclaration(d) || ts.isTypeAliasDeclaration(d)
-        );
-        if (isSupportedDeclaration) {
-          addDeclaredType(checker.getDeclaredTypeOfSymbol(symbol));
-        }
-      };
-      if (importClause.name) {
-        collectFromImport(importClause.name); // default import
-      }
-      if (importClause.namedBindings && ts.isNamedImports(importClause.namedBindings)) {
-        for (const element of importClause.namedBindings.elements) {
-          collectFromImport(element.name);
-        }
-      }
-      // Namespace imports (`import * as x from ...`) are intentionally not
-      // expanded — see README "Known limitations".
-    }
-  }
-
-  if (sawDeclarationCandidate && declaredPropertyNames.size > 0) {
-    declaredPropertyResolution = 'full';
-  } else if (sawDeclarationCandidate) {
-    // Declarations were found but none produced properties (e.g. every
-    // declaration failed to resolve). Stay conservative and skip the rule.
-    declaredPropertyResolution = 'none';
-  }
-
   // ------------------------------------------------- nested member resolving
   const resolveLocation: ts.Node = dataGetter ?? sourceFile;
 
@@ -429,13 +347,10 @@ export function analyzeQuickViewTypeScript(fileName: string, content: string): T
     dataPropertyNames,
     dataResolution,
     quickViewClassName: quickViewClass?.name?.text,
-    declaredPropertyNames,
-    declaredPropertyResolution,
     resolveDataPath,
     rootShape: proposedRootShape,
     dispose: () => {
       dataPropertyNames.clear();
-      declaredPropertyNames.clear();
     }
   };
 }

@@ -593,9 +593,6 @@ export class ExtensionController implements vscode.Disposable {
           `Data properties : ${analysis.dataPropertyNames.size} resolved (${analysis.dataResolution})` +
             (analysis.dataPropertyNames.size > 0 ? ` — ${[...analysis.dataPropertyNames].sort().join(', ')}` : '')
         );
-        lines.push(
-          `Declared props  : ${analysis.declaredPropertyNames.size} resolved (${analysis.declaredPropertyResolution})`
-        );
       }
     } else if (association.status === 'ambiguous') {
       lines.push('TypeScript file : AMBIGUOUS — candidates:');
@@ -621,8 +618,7 @@ export class ExtensionController implements vscode.Disposable {
     }
     lines.push(
       `  Feature checks  : duplicate IDs ${onOff(effective.enableDuplicateIdCheck)}, ` +
-        `data binding ${onOff(effective.enableDataBindingCheck)}, ` +
-        `ID/property ${onOff(effective.enableIdPropertyCheck)}`
+        `data binding ${onOff(effective.enableDataBindingCheck)}`
     );
     lines.push('');
     lines.push(`Errors: ${summary.errors}   Warnings: ${summary.warnings}   Information: ${summary.information}`);

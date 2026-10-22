@@ -76,7 +76,6 @@ export const DEFAULT_JSON_FILE_PATTERNS = ['quickview*.json', '*Template.json'];
 export interface ValidatorConfig {
   enableDuplicateIdCheck: boolean;
   enableDataBindingCheck: boolean;
-  enableIdPropertyCheck: boolean;
   /**
    * When true, `$when` / `isVisible` conditions of duplicate-ID occurrences
    * are analyzed: proven-mutually-exclusive siblings use
@@ -93,7 +92,6 @@ export interface ValidatorConfig {
    * `continuous` treats the real interval (1, 2) as an overlap.
    */
   numericConditionDomain: NumericDomain;
-  idPropertySeverity: Severity;
   validationDebounceMs: number;
   allowJsonComments: boolean;
   allowTrailingCommas: boolean;
@@ -106,11 +104,9 @@ export interface ValidatorConfig {
 export const DEFAULT_CONFIG: ValidatorConfig = {
   enableDuplicateIdCheck: true,
   enableDataBindingCheck: true,
-  enableIdPropertyCheck: true,
   enableVisibilityConditionAnalysis: true,
   conditionalDuplicateSeverity: 'off',
   numericConditionDomain: 'integer',
-  idPropertySeverity: 'warning',
   validationDebounceMs: 250,
   allowJsonComments: false,
   allowTrailingCommas: false,
@@ -123,7 +119,6 @@ export const DiagnosticCodes = {
   jsonSyntax: 'jsonSyntax',
   duplicateId: 'duplicateId',
   missingDataBinding: 'missingDataBinding',
-  missingIdProperty: 'missingIdProperty',
   missingTypeScript: 'missingTypeScript',
   noDataGetter: 'noDataGetter',
   unresolvedDataShape: 'unresolvedDataShape'

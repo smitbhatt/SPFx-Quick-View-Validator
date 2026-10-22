@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.4
+
+- **Removed the element ID ↔ TypeScript property check.** The
+  `spfxQuickViewValidator.enableIdPropertyCheck` setting (and its
+  `idPropertySeverity` companion, the `missingIdProperty` diagnostic code and the
+  `declaredPropertyNames` analysis) are gone. The rule enforced a project-specific
+  convention — that every element `id` in the template maps to a property declared
+  in the Quick View TypeScript file — which is not an Adaptive Card requirement and
+  produced warnings unrelated to whether the card actually works. Validation now
+  covers JSON syntax, duplicate IDs and data bindings. If you had
+  `spfxQuickViewValidator.enableIdPropertyCheck` in your settings, VS Code will flag
+  it as an unknown setting; delete the line.
+
 ## 1.2.3
 
 - **The Settings UI now spells out the default file-name patterns.** The

@@ -26,7 +26,6 @@ suite('JSON syntax validation', () => {
     assert.ok(byCode(diagnostics, DiagnosticCodes.jsonSyntax).length >= 1);
     assert.ok(!codes(diagnostics).includes(DiagnosticCodes.duplicateId), 'no duplicate checks on broken JSON');
     assert.ok(!codes(diagnostics).includes(DiagnosticCodes.missingDataBinding));
-    assert.ok(!codes(diagnostics).includes(DiagnosticCodes.missingIdProperty));
   });
 
   test('truncated documents are reported', () => {

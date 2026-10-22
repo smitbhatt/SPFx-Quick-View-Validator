@@ -28,7 +28,7 @@ both pass before committing.
 
 ## Tests
 
-- Plain **mocha** tests in `test/` (TDD UI, 173 scenarios) run in Node —
+- Plain **mocha** tests in `test/` (TDD UI, 168 scenarios) run in Node -
   no `@vscode/test-electron` needed, because `src/core/` and `src/analyzer/`
   never import `vscode`. The whole pipeline, including unsaved-content
   handling, is covered by these tests.
@@ -50,8 +50,7 @@ src/
   config.ts                    VS Code settings → typed configuration
   analyzer/
     analyzer.ts                TypeScript compiler API analysis (data getter,
-                               declared properties, nested type resolution,
-                               data shape tree)
+                               nested type resolution, data shape tree)
     shape.ts                   ts.Type → DataShape (object/array/union) builder
   core/
     types.ts                   VS Code-independent models
