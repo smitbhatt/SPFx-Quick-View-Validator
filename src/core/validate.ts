@@ -90,9 +90,11 @@ export function validateQuickView(input: ValidationInput): CoreDiagnostic[] {
   const diagnostics: CoreDiagnostic[] = [];
   const lineStarts = computeLineStarts(jsonText);
 
+  // SharePoint requires strict JSON, so comments and trailing commas are
+  // never allowed when validating a Quick View template.
   const parsed = parseQuickViewJson(jsonText, {
-    allowComments: config.allowJsonComments,
-    allowTrailingCommas: config.allowTrailingCommas
+    allowComments: false,
+    allowTrailingCommas: false
   });
 
   // ------------------------------------------------------- B. JSON syntax

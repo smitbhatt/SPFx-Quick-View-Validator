@@ -78,10 +78,10 @@ guessed at — it degrades to a warning.
 ### 2. JSON syntax validation
 
 `quickview.json` is parsed with [`jsonc-parser`](https://www.npmjs.com/package/jsonc-parser)
-for accurate source offsets. Strict JSON is the default; comments and trailing
-commas can be allowed per project (see settings). Duplicate-ID and
-consistency checks are skipped on malformed JSON so you only see the real
-problem first.
+for accurate source offsets. Validation is **strict JSON** — comments and
+trailing commas are always rejected, because SharePoint does not accept them.
+Duplicate-ID and consistency checks are skipped on malformed JSON so you only
+see the real problem first.
 
 ### 3. Data binding validation
 
@@ -244,12 +244,12 @@ the setting — e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.2.4.vsix` from the
+Download `spfx-quick-view-validator-1.2.5.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.2.4.vsix
+code --install-extension spfx-quick-view-validator-1.2.5.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -338,13 +338,12 @@ to the old ID, update those separately.
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. || `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
+| `spfxQuickViewValidator.enableDuplicateIdCheck` | `true` | Report duplicate element IDs. |
+| `spfxQuickViewValidator.enableVisibilityConditionAnalysis` | `true` | Analyze `$when` / `isVisible` conditions for duplicate IDs: proven mutually exclusive siblings are reported per `conditionalDuplicateSeverity`, unprovable conditions become warnings, overlapping conditions stay errors. Disable to report every duplicate as an error. |
 | `spfxQuickViewValidator.conditionalDuplicateSeverity` | `off` | Severity for duplicates proven mutually exclusive by their visibility conditions: `off` (not reported), `warning` or `information`. |
 | `spfxQuickViewValidator.numericConditionDomain` | `integer` | Domain for numeric condition comparisons. `integer` proves `${x > 1}` vs `${x < 2}` exclusive (adjacent integer bounds); set `continuous` when a numeric property can be fractional. |
 | `spfxQuickViewValidator.enableDataBindingCheck` | `true` | Validate `${...}` bindings against the data getter. |
 | `spfxQuickViewValidator.validationDebounceMs` | `250` | Debounce while typing (0–5000 ms). |
-| `spfxQuickViewValidator.allowJsonComments` | `false` | Permit `//` and `/* */` in `quickview.json`. |
-| `spfxQuickViewValidator.allowTrailingCommas` | `false` | Permit trailing commas. |
 | `spfxQuickViewValidator.jsonFilePatterns` | `["quickview*.json", "*Template.json"]` | File-name patterns treated as Quick View templates (case-insensitive, `*` wildcard). Covers `quickview.json`, `QuickViewTemplate.json` and any `<Something>Template.json`. Add your own names, e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`. |
 | `spfxQuickViewValidator.requireManualSelection` | `false` | When `true`, only files selected via the **Select Quick View Files** wizard are validated; automatic name matching is ignored. |
 

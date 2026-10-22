@@ -710,11 +710,10 @@ export class ExtensionController implements vscode.Disposable {
     // Re-parse the *current* document so a stale diagnostic can never
     // produce an incorrect edit, and so the uniqueness check sees every ID
     // (including fixes applied moments ago).
-    const config = readConfig();
     const text = document.getText();
     const parsed = parseQuickViewJson(text, {
-      allowComments: config.allowJsonComments,
-      allowTrailingCommas: config.allowTrailingCommas
+      allowComments: false,
+      allowTrailingCommas: false
     });
     const previewedSuffix = typeof suffix === 'string' && /^[0-9a-f]+$/.test(suffix) ? suffix : undefined;
     const plan = planDuplicateIdFix(

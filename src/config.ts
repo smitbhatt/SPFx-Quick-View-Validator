@@ -36,8 +36,6 @@ export function readConfig(): ValidatorConfig {
       0,
       5000
     ),
-    allowJsonComments: config.get<boolean>('allowJsonComments', DEFAULT_CONFIG.allowJsonComments),
-    allowTrailingCommas: config.get<boolean>('allowTrailingCommas', DEFAULT_CONFIG.allowTrailingCommas),
     jsonFilePatterns: sanitizePatterns(config.get<unknown>('jsonFilePatterns', DEFAULT_CONFIG.jsonFilePatterns)),
     requireManualSelection: config.get<boolean>('requireManualSelection', DEFAULT_CONFIG.requireManualSelection)
   };

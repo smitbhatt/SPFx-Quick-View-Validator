@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { byCode, codes, config, DiagnosticCodes, validate } from './helpers';
+import { byCode, codes, DiagnosticCodes, validate } from './helpers';
 
 suite('JSON syntax validation', () => {
   test('5. invalid JSON syntax is reported with an accurate location', () => {
@@ -34,26 +34,26 @@ suite('JSON syntax validation', () => {
     assert.ok(byCode(diagnostics, DiagnosticCodes.jsonSyntax).length >= 1);
   });
 
-  test('JSON comments are rejected by default and accepted when enabled', () => {
+  test('JSON comments are always rejected (no relaxation setting exists)', () => {
     const json = `{
   // a comment
   "type": "AdaptiveCard"
 }`;
-    const strict = validate(json);
-    assert.ok(byCode(strict, DiagnosticCodes.jsonSyntax).length >= 1, 'comments rejected in strict mode');
-
-    const relaxed = validate(json, { config: config({ allowJsonComments: true }) });
-    assert.ok(!codes(relaxed).includes(DiagnosticCodes.jsonSyntax), 'comments allowed when configured');
+    const diagnostics = validate(json);
+    assert.ok(
+      byCode(diagnostics, DiagnosticCodes.jsonSyntax).length >= 1,
+      'comments are rejected: SharePoint requires strict JSON and the setting was removed'
+    );
   });
 
-  test('trailing commas are rejected by default and accepted when enabled', () => {
+  test('trailing commas are always rejected (no relaxation setting exists)', () => {
     const json = `{
   "type": "AdaptiveCard",
 }`;
-    const strict = validate(json);
-    assert.ok(byCode(strict, DiagnosticCodes.jsonSyntax).length >= 1, 'trailing commas rejected in strict mode');
-
-    const relaxed = validate(json, { config: config({ allowTrailingCommas: true }) });
-    assert.ok(!codes(relaxed).includes(DiagnosticCodes.jsonSyntax), 'trailing commas allowed when configured');
+    const diagnostics = validate(json);
+    assert.ok(
+      byCode(diagnostics, DiagnosticCodes.jsonSyntax).length >= 1,
+      'trailing commas are rejected: SharePoint requires strict JSON and the setting was removed'
+    );
   });
 });

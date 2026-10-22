@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -135,16 +135,6 @@
           "minimum": 0,
           "maximum": 5000,
           "markdownDescription": "Debounce, in milliseconds, before re-validating `quickview.json` while it is being edited. `0` validates synchronously on every change."
-        },
-        "spfxQuickViewValidator.allowJsonComments": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow // and /* */ comments inside quickview.json. Off by default because SharePoint requires strict JSON."
-        },
-        "spfxQuickViewValidator.allowTrailingCommas": {
-          "type": "boolean",
-          "default": false,
-          "description": "Allow trailing commas inside quickview.json. Off by default because SharePoint requires strict JSON."
         },
         "spfxQuickViewValidator.jsonFilePatterns": {
           "type": "array",

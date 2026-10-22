@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { applyIdSuffix, generateDuplicateIdFix, planDuplicateIdFix, randomIdSuffix } from '../src/core/duplicateFix';
 import { parseQuickViewJson } from '../src/core/jsonDocument';
-import { byCode, config, DiagnosticCodes, validate } from './helpers';
+import { byCode, DiagnosticCodes, validate } from './helpers';
 
 function parseIds(text: string, allowComments = false) {
   return parseQuickViewJson(text, { allowComments, allowTrailingCommas: false }).ids;
@@ -275,10 +275,14 @@ suite('Fix duplicate ID — document flow (plan, splice, revalidate)', () => {
       assert.ok(fixed.includes('// card root'), 'comments survive');
       assert.ok(fixed.includes('\r\n'), 'line endings survive');
       assert.ok(fixed.includes('"id":   "state_'), 'surrounding odd spacing preserved');
-      assert.strictEqual(
-        byCode(validate(fixed, { config: config({ allowJsonComments: true }) }), DiagnosticCodes.duplicateId).length,
-        0
+      // The fix must leave exactly one occurrence of each ID behind. Assert on
+      // the parser directly rather than `validate`, because this fixture keeps
+      // a comment that strict validation (correctly) rejects.
+      const idsAfterFix = parseQuickViewJson(fixed, { allowComments: true, allowTrailingCommas: false }).ids.map(
+        (id) => id.value
       );
+      assert.strictEqual(idsAfterFix.filter((id) => id === 'state').length, 1, 'the duplicate is resolved');
+      assert.strictEqual(idsAfterFix.filter((id) => id.startsWith('state_')).length, 1, 'the renamed ID is unique');
     }
   });
 

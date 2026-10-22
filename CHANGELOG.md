@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.5
+
+- **Removed the `allowJsonComments` and `allowTrailingCommas` settings.**
+  SharePoint requires strict JSON, so relaxing the parser was never a useful
+  option — it only let an invalid template pass validation and fail later at
+  deploy time. `quickview.json` is now always parsed strictly: comments and
+  trailing commas are reported as syntax errors. If you had either setting in
+  your `settings.json`, delete the line; VS Code will flag it as unknown.
+
 ## 1.2.4
 
 - **Removed the element ID ↔ TypeScript property check.** The

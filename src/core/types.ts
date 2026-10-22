@@ -93,8 +93,6 @@ export interface ValidatorConfig {
    */
   numericConditionDomain: NumericDomain;
   validationDebounceMs: number;
-  allowJsonComments: boolean;
-  allowTrailingCommas: boolean;
   /** File-name patterns treated as Quick View templates. */
   jsonFilePatterns: string[];
   /** When true, only manually selected (pinned) Quick View files are validated. */
@@ -108,8 +106,6 @@ export const DEFAULT_CONFIG: ValidatorConfig = {
   conditionalDuplicateSeverity: 'off',
   numericConditionDomain: 'integer',
   validationDebounceMs: 250,
-  allowJsonComments: false,
-  allowTrailingCommas: false,
   jsonFilePatterns: [...DEFAULT_JSON_FILE_PATTERNS],
   requireManualSelection: false
 };

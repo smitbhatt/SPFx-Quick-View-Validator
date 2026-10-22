@@ -163,12 +163,22 @@ suite('End-to-end validation (realistic SPFx Quick View)', () => {
   });
 
   test('default configuration has strict JSON and the binding check enabled', () => {
-    assert.strictEqual(DEFAULT_CONFIG.allowJsonComments, false);
-    assert.strictEqual(DEFAULT_CONFIG.allowTrailingCommas, false);
     assert.strictEqual(DEFAULT_CONFIG.enableDuplicateIdCheck, true);
     assert.strictEqual(DEFAULT_CONFIG.enableDataBindingCheck, true);
     assert.ok(DEFAULT_CONFIG.validationDebounceMs >= 0);
     assert.deepStrictEqual(DEFAULT_CONFIG.jsonFilePatterns, ['quickview*.json', '*Template.json']);
     assert.strictEqual(DEFAULT_CONFIG.requireManualSelection, false);
+  });
+
+  test('removed settings are gone from package.json', () => {
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+    const props = pkg.contributes.configuration.properties as Record<string, unknown>;
+    // Removed in v1.2.4 (project-specific convention, not an Adaptive Card rule).
+    assert.ok(!('spfxQuickViewValidator.enableIdPropertyCheck' in props));
+    assert.ok(!('spfxQuickViewValidator.idPropertySeverity' in props));
+    // Removed in v1.2.5: SharePoint requires strict JSON, so relaxing the parser
+    // for comments/trailing commas was never a useful option.
+    assert.ok(!('spfxQuickViewValidator.allowJsonComments' in props));
+    assert.ok(!('spfxQuickViewValidator.allowTrailingCommas' in props));
   });
 });
