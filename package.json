@@ -3,7 +3,7 @@
   "displayName": "SPFx Quick View Validator",
   "icon": "images/icon.png",
   "description": "Real-time diagnostics for SharePoint Framework (SPFx) Adaptive Card Extension quickview.json files: duplicate element IDs, data-binding consistency and TypeScript property checks.",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "publisher": "spfx-tools",
   "author": "Smit P. Bhatt",
   "license": "MIT",
@@ -175,7 +175,7 @@
             "quickview*.json",
             "*Template.json"
           ],
-          "markdownDescription": "File-name patterns treated as Quick View templates (matched case-insensitively against the base name, `*` as wildcard). The default covers `quickview.json`, `QuickView.json`, the standard SPFx `QuickViewTemplate.json` and any `<Something>Template.json` name. Add your own file names here, e.g. `[\"quickview*.json\", \"*Template.json\", \"RiseCard.json\"]`."
+          "markdownDescription": "File-name patterns treated as Quick View templates (matched case-insensitively against the base name, `*` as wildcard).\n\n**Default:** `[\"quickview*.json\", \"*Template.json\"]`\n\nThe default matches `quickview.json`, `QuickView.json`, the standard SPFx `QuickViewTemplate.json` and **any** file whose name ends in `Template.json` (e.g. `RiseCardTemplate.json`, `MyCardTemplate.json`). Add more names here, e.g. `[\"quickview*.json\", \"*Template.json\", \"RiseCard.json\"]`.\n\nTo see the patterns actually in effect, run **SPFx Quick View Validator: Show Validation Summary**."
         },
         "spfxQuickViewValidator.requireManualSelection": {
           "type": "boolean",

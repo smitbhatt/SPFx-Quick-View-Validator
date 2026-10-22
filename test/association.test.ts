@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import { readFileSync } from 'fs';
 import * as path from 'path';
 import {
   discoverTypeScriptCandidates,
@@ -120,5 +121,30 @@ suite('Quick View file association', () => {
     assert.strictEqual(matchesJsonFilePatterns('C:/proj/mycard.json', ['mycard.json']), true);
     assert.strictEqual(matchesJsonFilePatterns('C:/proj/myXcard.json', ['mycard.json']), false);
     assert.strictEqual(matchesJsonFilePatterns('C:/proj/a+b.json', ['a+b.json']), true);
+  });
+
+  test('the shipped jsonFilePatterns description names the literal default', () => {
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+    const setting = pkg.contributes.configuration.properties['spfxQuickViewValidator.jsonFilePatterns'];
+    const text: string = setting.markdownDescription;
+    // The Settings UI renders only this text, so it must spell out the literal
+    // patterns and call out *Template.json matching explicitly.
+    assert.ok(text.includes('*Template.json'), 'description must mention *Template.json');
+    assert.ok(
+      text.includes('"quickview*.json", "*Template.json"'),
+      'description must show the literal default array so users can see it in the UI'
+    );
+  });
+
+  test('every contributed setting exposes non-empty UI text', () => {
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
+    const properties = pkg.contributes.configuration.properties as Record<
+      string,
+      { description?: string; markdownDescription?: string }
+    >;
+    for (const [key, value] of Object.entries(properties)) {
+      const text = value.markdownDescription ?? value.description ?? '';
+      assert.ok(text.trim().length > 0, `setting ${key} has no description shown in the Settings UI`);
+    }
   });
 });

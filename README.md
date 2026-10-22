@@ -256,12 +256,12 @@ the setting — e.g. `["quickview*.json", "*Template.json", "RiseCard.json"]`.
 
 ## Installation
 
-Download `spfx-quick-view-validator-1.2.2.vsix` from the
+Download `spfx-quick-view-validator-1.2.3.vsix` from the
 [latest release](https://github.com/smitbhatt/SPFx-Quick-View-Validator/releases/latest),
 then either double-click it, or:
 
 ```powershell
-code --install-extension spfx-quick-view-validator-1.2.2.vsix
+code --install-extension spfx-quick-view-validator-1.2.3.vsix
 ```
 
 Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
@@ -275,7 +275,7 @@ Or in VS Code: **Extensions** view → `...` menu → **Install from VSIX...**.
 | `SPFx Quick View Validator: Select Quick View Files (JSON and TypeScript)` | Two-step wizard: pick the Quick View JSON file, then its `quickView.ts`. The pair is remembered per workspace, the JSON is opened and validated immediately. Works with any file names. |
 | `SPFx Quick View Validator: Validate Current Quick View` | Validates the active Quick View JSON immediately and shows the result. |
 | `SPFx Quick View Validator: Select Associated TypeScript File` | Picks the `quickView.ts` for the *already active* JSON (stored per workspace). |
-| `SPFx Quick View Validator: Show Validation Summary` | Error/warning counts, association status, resolved data properties — in the output channel and as a notification. |
+| `SPFx Quick View Validator: Show Validation Summary` | Error/warning counts, association status, resolved data properties, and the **effective configuration** (the file-name patterns actually in use and whether the open file matched them) — in the output channel and as a notification. |
 
 ### Explicit "select first" workflow
 
@@ -472,7 +472,10 @@ Result:
    **off** — turn that on if you expect ID/property diagnostics.
 3. Run **Show Validation Summary** — it prints the association status
    (`resolved` / `ambiguous` / `not found`), the candidates found, the Quick
-   View class, and the resolved data properties.
+   View class, the resolved data properties, and the **Configuration** block:
+   the effective `jsonFilePatterns`, whether the open file **matched** them, and
+   which feature checks are on. That block is the authoritative answer to
+   "is my file being validated at all?"
 4. If the association is **ambiguous**, run **Select Associated TypeScript
    File** and pick the correct file; the choice is remembered per workspace.
 5. If the file is **not found**, check the naming convention: the extension

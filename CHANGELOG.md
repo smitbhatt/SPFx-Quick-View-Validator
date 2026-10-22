@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.3
+
+- **The Settings UI now spells out the default file-name patterns.** The
+  `spfxQuickViewValidator.jsonFilePatterns` description previously said the
+  default "covers … `<Something>Template.json` name" in prose, but the VS Code
+  Settings page only renders that description text — it does not display the
+  array's default value for an unset array setting, so `*Template.json` support
+  was invisible. The description now states the literal default
+  `["quickview*.json", "*Template.json"]` and says explicitly that any file
+  ending in `Template.json` is matched.
+- **`Show Validation Summary` now reports the effective configuration.** A new
+  `Configuration:` block lists the `jsonFilePatterns` actually in use, whether
+  the open file **matched** them (or whether `requireManualSelection` is
+  bypassing pattern matching), and the on/off state of the duplicate-ID, data
+  binding and ID/property checks. This makes "is my file validated, and why
+  not?" answerable without guessing.
+- A test now asserts every contributed setting exposes non-empty UI text, so a
+  missing or stale description like this is caught before release.
+
 ## 1.2.2
 
 - **The data-binding check is now on by default.** `spfxQuickViewValidator.enableDataBindingCheck`

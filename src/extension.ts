@@ -34,6 +34,11 @@ function baseName(p: string | undefined): string {
   return parts[parts.length - 1] || p;
 }
 
+/** Renders a boolean feature flag for the human-readable validation summary. */
+function onOff(value: boolean): string {
+  return value ? 'on' : 'off';
+}
+
 /**
  * Extension controller: owns the diagnostic collection, the file-association
  * cache, the (content keyed) analysis caches and all event subscriptions.
@@ -603,6 +608,22 @@ export class ExtensionController implements vscode.Disposable {
     } else {
       lines.push('TypeScript file : NOT FOUND — data-binding and ID-property checks are skipped.');
     }
+    lines.push('');
+    const effective = readConfig();
+    lines.push('Configuration:');
+    const patternSource = effective.jsonFilePatterns.length > 0 ? effective.jsonFilePatterns.join(', ') : '(none)';
+    lines.push(`  File patterns   : ${patternSource}`);
+    if (effective.requireManualSelection) {
+      lines.push('  File matching   : manual selection only (requireManualSelection is ON — file patterns are ignored)');
+    } else {
+      const matched = isQuickViewJsonPath(document.uri.fsPath, effective.jsonFilePatterns);
+      lines.push(`  File matching   : ${matched ? 'MATCHED by the patterns above' : 'NOT MATCHED — this file is outside the configured patterns'}`);
+    }
+    lines.push(
+      `  Feature checks  : duplicate IDs ${onOff(effective.enableDuplicateIdCheck)}, ` +
+        `data binding ${onOff(effective.enableDataBindingCheck)}, ` +
+        `ID/property ${onOff(effective.enableIdPropertyCheck)}`
+    );
     lines.push('');
     lines.push(`Errors: ${summary.errors}   Warnings: ${summary.warnings}   Information: ${summary.information}`);
 
